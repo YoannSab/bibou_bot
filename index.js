@@ -115,7 +115,7 @@ spotifyApi.clientCredentialsGrant()
 const app = express();
 app.use(express.static('public'));
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile('./public/index.html');
 });
 app.get('/login', (req, res) => {
     const scopes = [
