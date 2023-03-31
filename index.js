@@ -130,14 +130,19 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', async (req, res) => {
-    const { code, state } = req.query;
+    const { code } = req.query;
 
     try {
         const data = await spotifyApi.authorizationCodeGrant(code);
-        spotifyApi.setAccessToken(data.body['access_token']);
-        spotifyApi.setRefreshToken(data.body['refresh_token']);
+        const accessToken = data.body.access_token;
+        const refreshToken = data.body.refresh_token;
 
-        res.send('Authentification réussie. Tu peux fermer cette fenêtre.');
+        // On stocke les tokens dans la session de l'utilisateur
+        req.session.accessToken = accessToken;
+        req.session.refreshToken = refreshToken;
+
+        // On redirige l'utilisateur vers la page d'accueil
+        res.redirect('/');
     } catch (err) {
         console.error('Erreur lors de l\'authentification Spotify :', err);
         res.send('Erreur lors de l\'authentification Spotify.');
@@ -145,7 +150,7 @@ app.get('/callback', async (req, res) => {
 });
 
 const server = app.listen(process.env.PORT || 8888, () => {
-    console.log('Le serveur est à l\'écoute sur le port 8888.');
+    console.log(`Le serveur est à l\'écoute sur le port  ${server.address().port}.`);
 });
 
 
