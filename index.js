@@ -88,7 +88,7 @@ var guessDelay = 60 * 1000;
 // Tes identifiants Spotify
 const clientId = process.env.SPOTIFY_CLIENT_ID;
 const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-const redirectUri = 'http://localhost:8888/callback';
+const redirectUri = 'https://biboubot.herokuapp.com/callback';
 
 const spotifyApi = new SpotifyWebApi({
     clientId: clientId,
@@ -144,7 +144,7 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-const server = app.listen(8888, () => {
+const server = app.listen(process.env.PORT || 8888, () => {
     console.log('Le serveur est à l\'écoute sur le port 8888.');
 });
 
