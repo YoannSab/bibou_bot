@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Mon chat bot</title>
+    <style>
+      body {
+        background-color: #eaeaea;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+      }
+      
+      .header {
+        background-color: #444444;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        font-weight: bold;
+        height: 60px;
+        width: 100%;
+      }
+      
+      .chat {
+        background-color: #ffffff;
+        flex-grow: 1;
+        overflow-y: scroll;
+        padding: 20px;
+      }
+      
+      .input {
+        background-color: #ffffff;
+        border: none;
+        border-top: 1px solid #dddddd;
+        bottom: 0;
+        height: 60px;
+        padding: 20px;
+        position: fixed;
+        width: 100%;
+      }
+      
+      .input:focus {
+        outline: none;
+      }
+      
+      .input::placeholder {
+        color: #dddddd;
+      }
+      
+      .button {
+        background-color: #444444;
+        border: none;
+        color: #ffffff;
+        cursor: pointer;
+        height: 100%;
+        padding: 0 20px;
+      }
+      
+      .button:focus {
+        outline: none;
+      }
+      
+      .button:hover {
+        background-color: #666666;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <div class="container">
+      <div class="header">
+        Mon chat bot
+      </div>
+      
+      <div class="chat">
+        <div><strong>Bibou:</strong> Salut tout le monde !</div>
+        <div><strong>Bibou:</strong> Qu'est-ce que vous avez prévu aujourd'hui ?</div>
+        <div><strong>Vous:</strong> Salut Bibou ! Je vais jouer à des jeux vidéo toute la journée !</div>
+        <div><strong>Bibou:</strong> Super, amuse-toi bien !</div>
+      </div>
+      
+      <form class="input">
+        <input type="text" placeholder="Entrez votre message ici...">
+        <button class="button">Envoyer</button>
+      </form>
+    </div>
+  </body>
+</html>

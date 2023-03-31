@@ -113,7 +113,10 @@ spotifyApi.clientCredentialsGrant()
 
 // Configuration du serveur Web pour gérer l'authentification OAuth
 const app = express();
-
+app.use(express.static('public'));
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
 app.get('/login', (req, res) => {
     const scopes = [
         'user-read-private',
@@ -797,7 +800,6 @@ client.on('message', async (channel, userstate, message, self) => {
 
                     }, 45000);
                 } else {
-                    console.error(error);
                     client.say(channel, `Il y a eu un problème avec la récupération des skins.`);
                 }
             })();
