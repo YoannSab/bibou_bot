@@ -4,7 +4,8 @@
   "description": "chatbot pour la chaine de bibou",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --recursive tests/"
+    "test": "mocha --recursive tests/",
+    "start": "node index.js"
   },
   "author": "yoann",
   "license": "ISC",
