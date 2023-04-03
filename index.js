@@ -33,15 +33,15 @@ const emoticons = {
     Kreygasm: 'Kreygasm',
     TriHard: 'TriHard',
 };
-
+/*
 const username = process.env.TWITCH_USERNAME;
 const password = process.env.TWITCH_OAUTH_TOKEN;
 const riotApiKey = process.env.RIOT_API_KEY;
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
+*/
 
-/*
 const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
 const username = keys.twitch_username;
 const password = keys.twitch_oauth;
@@ -49,7 +49,7 @@ const riotApiKey = keys.riot_api_key;
 const spotifyClientId = keys.spotify_client_id;
 const spotifyClientSecret = keys.spotify_client_secret;
 const spotifyRedirectUri = keys.spotify_redirect_uri;
-*/
+
 const options = {
     options: {
         debug: true,
@@ -67,17 +67,19 @@ const options = {
 };
 
 const client = new tmi.Client(options);
-function connect() {
-    client.connect();
+async function connect() {
+    try{
+        await client.connect();
+    }
+    catch(err){
+        console.log(err);
+    }
 }
-connect();
-function disconnect() {
-    client.disconnect();
-}
+
 
 const bannedWords = ['biboulpb'];
 const axios = require('axios');
-
+const bodyParser = require('body-parser');
 // Ton API key Riot Games
 const SpotifyWebApi = require('spotify-web-api-node');
 const express = require('express');
@@ -114,10 +116,39 @@ spotifyApi.clientCredentialsGrant()
 
 // Configuration du serveur Web pour gérer l'authentification OAuth
 const app = express();
+
 app.use(express.static('public'));
+app.use(bodyParser.json());
+
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
+
+app.post('/api/setDelay', (req, res) => {
+    console.log(req);
+    guessDelay = req.body.delay * 1000;
+    res.send(JSON.stringify({ message: 'Delay set to ' + req.body.delay + ' seconds' }));
+    client.action('bibou_LoL', 'Le délai entre deux devinettes est maintenant de ' + req.body.delay + ' secondes');
+});
+app.get('/connect', (req, res) => {
+    connect();
+    res.send(JSON.stringify('Connected'));
+});
+
+app.get('/api/allowMusic', (req, res) => {
+    allow_music = true;
+    res.send(JSON.stringify('Music allowed'));
+    client.action('bibou_LoL', 'Ajout de musique autorisé');
+});
+app.get('/api/denyMusic', (req, res) => {
+    allow_music = false;
+    res.send(JSON.stringify('Music denied'));
+    client.action('bibou_LoL', 'Ajout de musique interdit');
+});
+app.get('/api/giveaway', (req, res) => {
+    res.send(JSON.stringify({participants: Array.from(giveaway.participants), winner: giveaway.winner}));
+});
+
 app.get('/login', (req, res) => {
     const scopes = [
         'user-read-private',
@@ -171,7 +202,7 @@ client.on('message', async (channel, userstate, message, self) => {
         }
     }
     switch (command) {
-        case 'giveway':
+        case 'giveaway':
             await handleGiveaway(channel, userstate, args[0]);
             break;
         case 'gg':
@@ -477,16 +508,16 @@ async function handleGiveaway(channel, userstate, name) {
     // check if the user is a mod or the broadcaster
     if (userstate.mod || userstate['display-name'] === channel.slice(1)) {
         if (name === undefined) name = "Bibou";
-        client.say(channel, "Pour participer au giveaway, envoyez " + name + " dans le chat dans les prochaines 2 minutes !");
+        client.say(channel, "Pour participer au giveaway, envoyez " + name + " dans le chat dans les prochaines 45s !");
         giveaway.motclé = name;
+        giveaway.participants = new Set();
         giveaway.active = true;
         setTimeout(() => {
+            console.log(giveaway);
             giveaway.active = false;
             giveaway.winner = Array.from(giveaway.participants)[Math.floor(Math.random() * giveaway.participants.size)];
-            giveaway.participants = new Set();
-            giveaway.motclé = "";
             client.say(channel, "Le giveaway est terminé ! Merci à tous pour votre participation ! Le Gagnant est : " + giveaway.winner);
-        }, 1000 * 60 * 2);
+        }, 1000 * 45);
     } else {
         client.say(channel, "Seuls les modos peuvent lancer un giveaway !");
     }

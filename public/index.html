@@ -1,97 +1,65 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>Mon chat bot</title>
-    <style>
-      body {
-        background-color: #eaeaea;
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-      }
-      
-      .container {
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        width: 100vw;
-      }
-      
-      .header {
-        background-color: #444444;
-        color: #ffffff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 24px;
-        font-weight: bold;
-        height: 60px;
-        width: 100%;
-      }
-      
-      .chat {
-        background-color: #ffffff;
-        flex-grow: 1;
-        overflow-y: scroll;
-        padding: 20px;
-      }
-      
-      .input {
-        background-color: #ffffff;
-        border: none;
-        border-top: 1px solid #dddddd;
-        bottom: 0;
-        height: 60px;
-        padding: 20px;
-        position: fixed;
-        width: 100%;
-      }
-      
-      .input:focus {
-        outline: none;
-      }
-      
-      .input::placeholder {
-        color: #dddddd;
-      }
-      
-      .button {
-        background-color: #444444;
-        border: none;
-        color: #ffffff;
-        cursor: pointer;
-        height: 100%;
-        padding: 0 20px;
-      }
-      
-      .button:focus {
-        outline: none;
-      }
-      
-      .button:hover {
-        background-color: #666666;
-      }
-    </style>
-  </head>
-  
-  <body>
-    <div class="container">
-      <div class="header">
-        Mon chat bot
-      </div>
-      
-      <div class="chat">
-        <div><strong>Bibou:</strong> Salut tout le monde !</div>
-        <div><strong>Bibou:</strong> Qu'est-ce que vous avez prévu aujourd'hui ?</div>
-        <div><strong>Vous:</strong> Salut Bibou ! Je vais jouer à des jeux vidéo toute la journée !</div>
-        <div><strong>Bibou:</strong> Super, amuse-toi bien !</div>
-      </div>
-      
-      <form class="input">
-        <input type="text" placeholder="Entrez votre message ici...">
-        <button class="button">Envoyer</button>
-      </form>
-    </div>
-  </body>
+
+<head>
+	<title>Mon Chat Bot Twitch</title>
+	<link rel="stylesheet" href="style.css">
+	<script src="./fonctions.js"></script>
+</head>
+
+<body>
+	<header>
+		<h1>Bibou Bot</h1>
+	</header>
+	<main>
+		<section id="chat">
+			<h2>Connexion</h2>
+			<div id="connexions">
+				<p><button class="button-style" id="connect-button">Connexion au chat</button></p>
+				<p><a class="button-style" id="login-button" href="/login" target="_blank">Connexion a spotify</a></p>
+			</div>
+		</section>
+		<section id="parametres">
+			<h2>Paramètres du Chat Bot</h2>
+			<form onsubmit="setDelay(event)">
+				<label for="duree">Durée entre deux guess :</label>
+				<input type="text" id="duree" name="duree" placeholder="Temps en seconde">
+				<button type="submit">Valider</button>
+			</form>
+			<div class="container">
+
+				<span style="align-self: center;"> Autoriser l'ajout en file d'attente </span>
+
+				<button id="allowMusic" class="button-style">
+					Oui
+				</button>
+				<button id="disallowMusic" class="button-style">
+					Non
+				</button>
+			</div>
+
+		</section>
+		<section id="objets">
+			<h2>Récupérer les données</h2>
+			<form id="giveawayForm">
+				<label for="giveaway">Récupérer les données du dernier giveway</label>
+				<br/>
+				<button class="button-style" type="submit">Valider</button>
+			</form>
+			
+			<div id="participants" style="display: none;">
+				<p>Participants</p>
+				<ul id="nomsParticipants">
+				</ul>
+			</div>
+			<div id="gagnant" style="display: none;">
+				<p>Gagnant : </p> <span id="nomGagnant"></span>
+			</div>
+		</section>
+	</main>
+	<footer>
+		<p>&copy; 2023 - Mon Chat Bot Twitch</p>
+	</footer>
+</body>
+
 </html>
