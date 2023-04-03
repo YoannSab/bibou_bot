@@ -414,6 +414,19 @@ client.on('message', async (channel, userstate, message, self) => {
             }
 
             break;
+        case 'setdelay':
+            if (userstate.mod) {
+                const delay = parseInt(args[0]);
+                if (delay > 0) {
+                    guessDelay = delay;
+                    client.say(channel, `Le délai de réponse est maintenant de ${delay} secondes.`);
+                } else {
+                    client.say(channel, `Veuillez entrer un délai valide.`);
+                }
+            } else {
+                client.say(channel, `Seul les modérateurs peuvent changer le délai de jeu.`);
+            }
+            break;
         default:
             if (message.startsWith("!")) {
                 var commands = ["!elo", "!twitter", "!lolpro", "!opgg", "!music", "!hello", "!songrequest", "!factlol", "!low", "!game", "!idee", "!love", "!story", "!guess", "!streak", "!winrate", "!skipsong", "!skin", "!vote", "!guess", "!hint", "!abandon", "!soloq"];
@@ -464,7 +477,7 @@ async function handleGiveaway(channel, userstate, name) {
     // check if the user is a mod or the broadcaster
     if (userstate.mod || userstate['display-name'] === channel.slice(1)) {
         if (name === undefined) name = "Bibou";
-        client.say(channel, "Pour participer au giveaway, envoyez " + name + " dans le chat dans les prochaines 30 secondes !");
+        client.say(channel, "Pour participer au giveaway, envoyez " + name + " dans le chat dans les prochaines 2 minutes !");
         giveaway.motclé = name;
         giveaway.active = true;
         setTimeout(() => {
