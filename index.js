@@ -33,22 +33,23 @@ const emoticons = {
     Kreygasm: 'Kreygasm',
     TriHard: 'TriHard',
 };
-/*
+
 const username = process.env.TWITCH_USERNAME;
 const password = process.env.TWITCH_OAUTH_TOKEN;
 const riotApiKey = process.env.RIOT_API_KEY;
 const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
-*/
 
-const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
+
+/*const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
 const username = keys.twitch_username;
 const password = keys.twitch_oauth;
 const riotApiKey = keys.riot_api_key;
 const spotifyClientId = keys.spotify_client_id;
 const spotifyClientSecret = keys.spotify_client_secret;
 const spotifyRedirectUri = keys.spotify_redirect_uri;
+*/
 
 const options = {
     options: {
