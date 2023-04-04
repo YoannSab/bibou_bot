@@ -443,6 +443,12 @@ client.on('message', async (channel, userstate, message, self) => {
             } catch (error) {
                 console.error(error);
                 client.say(channel, `Il y a eu un problème lors de la récupération des informations du soloqchallenge.`);
+                try{
+                    const streak = await getMatchHistory("Michıkatsu");
+                    client.say(channel, `BIBOU  streak -> ${streak}`);
+                }catch (error){
+                    console.error(error);
+                }
             }
 
             break;
@@ -672,7 +678,7 @@ async function getMatchHistory(username) {
     }
 }
 async function handleElo(channel) {
-    const summonerNames = ['AKR Bibou', 'Yoriichı'];
+    const summonerNames = ['AKR Bibou', 'Yoriichı', 'Michıkatsu'];
 
     const getSummonerInfo = async (summonerName) => {
         try {
