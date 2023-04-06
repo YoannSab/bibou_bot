@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Classement des points de chaîne</title>
+    <link rel="stylesheet" href="style_home.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="left">
+        <h1>Classement des points de chaîne</h1>
+        <table>
+          <thead>
+            <tr>
+              <th>Position</th>
+              <th>Pseudo</th>
+              <th>Points de chaîne</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="right">
+        <form>
+          <label for="username">Entrez votre pseudo :</label>
+          <input type="text" id="username" name="username" required />
+          <button id="search-btn">Rechercher</button>
+        </form>
+        <p id="user-score"></p>
+      </div>
+    </div>
+    <div class="container">
+      <h1>Règles du chat</h1>
+      <ul id="rules-list">
+        <li>Respectez les autres utilisateurs</li>
+        <li>Pas de langage offensant ou violent</li>
+        <li>Pas de spam</li>
+        <li>Pas de publicité</li>
+      </ul>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

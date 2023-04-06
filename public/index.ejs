@@ -2,12 +2,20 @@
 <html>
 
 <head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Mon Chat Bot Twitch</title>
 	<link rel="stylesheet" href="style.css">
 	<script src="./fonctions.js"></script>
 </head>
 
 <body>
+	<% if (authenticated) { %>
+		<h1>Bienvenue, <%= username %> !</h1>
+	  <% } else { %>
+		<h1>Vous n'êtes pas authentifié</h1>
+	  <% } %>
 	<header>
 		<h1>Bibou Bot</h1>
 	</header>

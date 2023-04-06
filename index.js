@@ -8,8 +8,8 @@ const bodyParser = require('body-parser');
 const SpotifyWebApi = require('spotify-web-api-node');
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-//const passport = require('passport');
-//const LocalStrategy = require('passport-local').Strategy;
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
 //data
 const champFile = fs.readFileSync('./champ.json');
@@ -49,6 +49,7 @@ var reviewOPGGCost = 500;
 var skinCost = 30;
 var songrequestCost = 30;
 //credentials
+
 
 const username = process.env.TWITCH_USERNAME;
 const password = process.env.TWITCH_OAUTH_TOKEN;
@@ -114,92 +115,178 @@ spotifyApi.clientCredentialsGrant()
         console.error('Erreur lors de la récupération du jeton d\'accès Spotify :', err);
     });
 
+/******************************************* */
+/************CONNEXION MONGODB************** */
+/******************************************* */
+const uri = `mongodb+srv://${mongedb_username}:${mongodb_password}@biboubot.kdbhjnu.mongodb.net/?retryWrites=true&w=majority`;
+const clientmongo = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+var collection;
+var db;
+var userDB;
+try {
+    clientmongo.connect();
+    // Select the database and collection
+    db = clientmongo.db('biboubot_bd'); // Replace 'test_db' with your database name
+    collection = db.collection('channel_points'); // Replace 'test_collection' with your collection name
+    console.log("Connected to MongoDB");
+    userDB = db.collection('user');
+} catch (e) {
+    console.error(e);
+}
+/******************************************* */
+/************FIN CONNEXION MONGODB*********** */
+/******************************************* */
 
 /**************************************** */
 /************SERVEUR********************* */
 /**************************************** */
-/*
-passport.use(new LocalStrategy(
-    function(username, password, done) {
-      user.findOne({ username: username }, function (err, user) {
-        if (err) { return done(err); }
-        if (!user) { return done(null, false); }
-        if (!(password == user.password)) { return done(null, false); }
-        return done(null, user);
-      });
-    }
-  ));
 
-  */
+passport.use(new LocalStrategy(
+    async function(username, password, done) {
+        try {
+            const user = await userDB.findOne({ username: username });
+            if (!user) {
+                console.log('User not found');
+                return done(null, false);
+            }
+            if (user.password != password) {
+                console.log('Incorrect password');
+                return done(null, false);
+            }
+            console.log('User authenticated successfully');
+            return done(null, user);
+        } catch (err) {
+            console.error('Error:', err);
+            return done(err);
+        }
+    }
+));
+
+
 // Configuration du serveur Web pour gérer l'authentification OAuth
 const app = express();
-//const session = require('express-session');
-/*
+const session = require('express-session');
+const crypto = require('crypto');
+app.engine('.html', require('ejs').renderFile); // Use EJS to render HTML files, for example
+app.set('public engine', 'html'); // Use the .html extension for views
+
+
+const secret = crypto.randomBytes(32).toString('hex');
+
 app.use(session({
-  secret: 'mysecret',
-  resave: false,
-  saveUninitialized: false
+    secret: secret,
+    resave: false,
+    saveUninitialized: false
 }));
 
-passport.serializeUser(function(user, done) {
-  done(null, user._id);
+passport.serializeUser(function (user, done) {
+    done(null, user._id);
 });
 
-passport.deserializeUser(function(id, done) {
-  user.findOne({ _id: id }, function (err, user) {
-    done(err, user);
-  });
+const ObjectId = require('mongodb').ObjectId;
+passport.deserializeUser(async function (id, done) {
+    const user  = await userDB.findOne({ _id: new ObjectId(id) });
+    if(!user) {
+        return done(null, false);
+    }
+    done(null, user);
+    });
+
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
 });
 
+app.set('view engine', 'ejs');
+app.set('views', __dirname + '/public')
+app.use(express.static('public'));
 app.use(passport.initialize());
 app.use(passport.session());
-
-*/
-app.use(express.static('public'));
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/index.html');
+    if (req.isAuthenticated()) {
+        res.render('index', { authenticated: true, username: req.user.username });
+    } else {
+        res.render('index', { authenticated: false });
+    }
 });
 
-app.post('/api/setDelay', (req, res) => {
-    console.log(req);
+function isAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+      return next();
+    } else {
+      res.status(401).send("Vous n'êtes pas autorisé à accéder à cette ressource.");
+    }
+  }  
+
+app.post('/api/setDelay', isAuthenticated, (req, res) => {
     guessDelay = req.body.delay * 1000;
     res.send(JSON.stringify({ message: 'Delay set to ' + req.body.delay + ' seconds' }));
-    client.action('bibou_LoL', 'Le délai entre deux devinettes est maintenant de ' + req.body.delay + ' secondes');
+    try{
+        client.action('bibou_LoL', 'Le délai entre deux devinettes est maintenant de ' + req.body.delay + ' secondes');
+    }catch(e){
+        console.log(e);
+    }
 });
-app.get('/connect', (req, res) => {
-    connect();
-    res.send(JSON.stringify('Connected'));
+app.get('/connect', isAuthenticated, (req, res) => {
+    try{
+        // if not connected, connect
+        client.connect();
+    }catch(e){
+        console.log(e);
+    }
 });
-
-app.get('/api/allowMusic', (req, res) => {
-    allow_music = true;
-    res.send(JSON.stringify('Music allowed'));
-    client.action('bibou_LoL', 'Ajout de musique autorisé');
-});
-app.get('/api/denyMusic', (req, res) => {
-    allow_music = false;
-    res.send(JSON.stringify('Music denied'));
-    client.action('bibou_LoL', 'Ajout de musique interdit');
-});
-app.get('/api/giveaway', (req, res) => {
-    res.send(JSON.stringify({ participants: Array.from(giveaway.participants), winner: giveaway.winner }));
+app.get('/home', (req, res) => {
+    res.render('home.html');
 });
 
-app.get('/login', (req, res) => {
-    const scopes = [
-        'user-read-private',
-        'user-read-email',
-        'user-read-playback-state',
-        'user-modify-playback-state',
-        'app-remote-control', // Ajoutez cette ligne pour la portée app-remote-control
-        'playlist-modify-public',
-        'playlist-modify-private'
-    ];
-    const state = 'some-state';
+app.get('/api/allowMusic', isAuthenticated, (req, res) => {
+    try{
+        allow_music = true;
+        res.send(JSON.stringify('Music allowed'));
+        client.action('bibou_LoL', 'Ajout de musique autorisé');
+    }catch(e){
+        console.log(e);
+    }
+});
+app.get('/api/denyMusic', isAuthenticated, (req, res) => {
+    try{
+        allow_music = false;
+        res.send(JSON.stringify('Music denied'));
+        client.action('bibou_LoL', 'Ajout de musique interdit');
+    }catch(e){
+        console.log(e);
+    }
+});
+app.get('/api/giveaway', isAuthenticated, (req, res) => {
+    try{
+        res.send(JSON.stringify({ participants: Array.from(giveaway.participants), winner: giveaway.winner }));
+    }catch(e){
+        console.log(e);
+    }
+});
 
-    res.redirect(spotifyApi.createAuthorizeURL(scopes, state));
+app.get('/login-spotify', isAuthenticated,  (req, res) => {
+    try{
+        const scopes = [
+            'user-read-private',
+            'user-read-email',
+            'user-read-playback-state',
+            'user-modify-playback-state',
+            'app-remote-control', // Ajoutez cette ligne pour la portée app-remote-control
+            'playlist-modify-public',
+            'playlist-modify-private'
+        ];
+        const state = 'some-state';
+
+        res.redirect(spotifyApi.createAuthorizeURL(scopes, state));
+    }catch(e){
+        console.log(e);
+    }
 });
 
 app.get('/callback', async (req, res) => {
@@ -217,35 +304,54 @@ app.get('/callback', async (req, res) => {
     }
 });
 
+
+app.get('/login', function (req, res) {
+    res.render('login.html');
+});
+
+app.post('/login', (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+        if (err) {
+            console.error(err);
+            return next(err);
+        }
+        if (!user) {
+            return res.redirect('/login');
+        }
+        req.logIn(user, (err) => {
+            if (err) {
+                console.error(err);
+                return next(err);
+            }
+            req.session.save(() => {
+                res.redirect('/');
+            });
+        });
+    })(req, res, next);
+});
+
+
+app.get('/logout', function (req, res) {
+    req.logout();
+    res.redirect('/');
+});
+
+app.use(function (err, req, res, next) {
+    console.error(err.stack);
+    res.status(500).send('Something broke!');
+});
+
+
 app.listen(process.env.PORT || 8888, () => {
     console.log('Le serveur est à l\'écoute sur le port 8888.');
 });
+
 /******************************************* */
 /************FIN SERVEUR********************* */
 /******************************************* */
 
 
-/******************************************* */
-/************CONNEXION MONGODB************** */
-/******************************************* */
-const uri = `mongodb+srv://${mongedb_username}:${mongodb_password}@biboubot.kdbhjnu.mongodb.net/?retryWrites=true&w=majority`;
-const clientmongo = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-var collection;
-var db;
-var user;
-try {
-    clientmongo.connect();
-    // Select the database and collection
-    db = clientmongo.db('biboubot_bd'); // Replace 'test_db' with your database name
-    collection = db.collection('channel_points'); // Replace 'test_collection' with your collection name
-    console.log("Connected to MongoDB");
-    //user = db.collection('user');
-} catch (e) {
-    console.error(e);
-}
-/******************************************* */
-/************FIN CONNEXION MONGODB*********** */
-/******************************************* */
+
 
 
 /************************************ */
@@ -423,10 +529,10 @@ client.on('message', async (channel, userstate, message, self) => {
                 client.say(channel, `Ce qui coute : !hint(${hintCost} points), !low(${lowCost} points), se faire !low (${lowCost}), !skip(${skipsongCost} points), !skin(${skinCost} points), !reviewopgg(${reviewOPGGCost} points), !coaching(${coachingCost} points), !onevone(${oneVOneCost} points)`);
                 client.say(channel, `Ce qui rapporte : Envoyer un message (1 point), !guess(${guessReward} points), !love(dépend du % d'amour), !gift (dépend du don), !onevone (${oneVOneReward} points si gagné), !prediction(depend de la cote)`);
                 break;
-            case 'infos':
-                client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !factlol, !low @qqun, !game, !idee, !love (nom de la personne), !story (nom du champion), !guess, !streak');
+            case 'infos' || 'help':
+                client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !factlol, !low @qqun, !game, !idee, !love (nom de la personne), !story (nom du champion), !guess, !streak', '!prediction (nom du champion), !gift , !reviewopgg, !coaching, !onevone, !skip, !hint, !try (nom du champion), !rules, !infos');
                 break;
-            case 'idee':
+            case 'idee': !
                 client.say(channel, 'Donne ton idée de commande : https://forms.gle/WMQprchNg8gQvYrc9');
                 break;
             case 'story':
@@ -756,7 +862,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 break;
 
             default:
-                var commands = ["!elo", "!twitter", "!lolpro", "!opgg", "!music", "!songrequest", "!factlol", "!low", "!game", "!idee", "!love", "!story", "!guess", "!streak", "!winrate", "!skipsong", "!skin", "!vote", "!guess", "!hint", "!abandon", "!soloq", "!giveaway", "!points", "!soloq"];
+                var commands = ["!elo", "!twitter", "!lolpro", "!opgg", "!music", "!songrequest", "!factlol", "!infos", "!low", "!game", "!idee", "!love", "!story", "!guess", "!streak", "!winrate", "!skipsong", "!skin", "!vote", "!guess", "!hint", "!abandon", "!soloq", "!giveaway", "!points", "!soloq", "!prediction", "!bet", "!result", "!top3"];
                 // compute proximity of the command to the commands in the array with my function
                 var proximity = commands.map(function (comm) {
                     return jaroWinklerDistance(comm, message);
