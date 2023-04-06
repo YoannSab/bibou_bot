@@ -8,6 +8,8 @@ const bodyParser = require('body-parser');
 const SpotifyWebApi = require('spotify-web-api-node');
 const express = require('express');
 const { MongoClient, ServerApiVersion } = require('mongodb');
+//const passport = require('passport');
+//const LocalStrategy = require('passport-local').Strategy;
 
 //data
 const champFile = fs.readFileSync('./champ.json');
@@ -17,8 +19,9 @@ const championNamesMatch = JSON.parse(championNamesFile);
 var phraseGG = JSON.parse(fs.readFileSync('./gg.json'));
 phraseGG = phraseGG.map(function (x) { return x.replace(/Bibou/g, '[]'); });
 var champToGuess = {};
-var giveaway = { "active": false, "participants": new Set(), "winner": "", "motclé": "" };
-var votes = { "active": false, "voter": "" };
+var giveaway = { active: false, participants: new Set(), winner: "", motclé: "" };
+var votes = { active: false, voter: "" };
+var prediction = { active: false, participants: [], totWin: 0, totLoss: 0 };
 const phraseLow = JSON.parse(fs.readFileSync('./clash.json'));
 // Dictionnaire des émoticônes
 const emoticons = {
@@ -69,7 +72,6 @@ const mongodb_password = keys.mongodb_password;
 */
 
 
-
 //options de connexion
 const options = {
     options: {
@@ -116,9 +118,43 @@ spotifyApi.clientCredentialsGrant()
 /**************************************** */
 /************SERVEUR********************* */
 /**************************************** */
+/*
+passport.use(new LocalStrategy(
+    function(username, password, done) {
+      user.findOne({ username: username }, function (err, user) {
+        if (err) { return done(err); }
+        if (!user) { return done(null, false); }
+        if (!(password == user.password)) { return done(null, false); }
+        return done(null, user);
+      });
+    }
+  ));
+
+  */
 // Configuration du serveur Web pour gérer l'authentification OAuth
 const app = express();
+const session = require('express-session');
+/*
+app.use(session({
+  secret: 'mysecret',
+  resave: false,
+  saveUninitialized: false
+}));
 
+passport.serializeUser(function(user, done) {
+  done(null, user._id);
+});
+
+passport.deserializeUser(function(id, done) {
+  user.findOne({ _id: id }, function (err, user) {
+    done(err, user);
+  });
+});
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+*/
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
@@ -188,6 +224,7 @@ app.listen(process.env.PORT || 8888, () => {
 /************FIN SERVEUR********************* */
 /******************************************* */
 
+
 /******************************************* */
 /************CONNEXION MONGODB************** */
 /******************************************* */
@@ -195,12 +232,14 @@ const uri = `mongodb+srv://${mongedb_username}:${mongodb_password}@biboubot.kdbh
 const clientmongo = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 var collection;
 var db;
+var user;
 try {
     clientmongo.connect();
     // Select the database and collection
     db = clientmongo.db('biboubot_bd'); // Replace 'test_db' with your database name
     collection = db.collection('channel_points'); // Replace 'test_collection' with your collection name
     console.log("Connected to MongoDB");
+    //user = db.collection('user');
 } catch (e) {
     console.error(e);
 }
@@ -287,14 +326,14 @@ client.on('message', async (channel, userstate, message, self) => {
                 }
                 break;
             case 'songrequest':
-                
+
                 if (allow_music) {
                     const query = message.substring('!songrequest'.length).trim();
                     var points = await getPoints(userstate.username);
-                    if(points < songrequestCost) {
+                    if (points < songrequestCost) {
                         client.say(channel, `Il te manque ${songrequestCost - points} points pour faire ça !`);
                     }
-                    else{
+                    else {
                         if (query.length > 0) {
                             await searchAndQueueSong(query, channel);
                             await givePoints(userstate.username, -songrequestCost);
@@ -302,7 +341,7 @@ client.on('message', async (channel, userstate, message, self) => {
                             client.say(channel, 'Veuillez fournir une requête pour la recherche de chansons. Exemple: !songrequest The Beatles');
                         }
                     }
-                    
+
                 } else {
                     client.say(channel, 'Ajout de musique interdit');
                 }
@@ -362,9 +401,9 @@ client.on('message', async (channel, userstate, message, self) => {
                     } else {
                         other = other.join(' ');
                         if (other.startsWith("@")) {
-                            if(other.slice(1).toLowerCase() == userstate.username) {
+                            if (other.slice(1).toLowerCase() == userstate.username) {
                                 client.say(channel, `Tu peux pas t'aimer toi même ${emoticons.Kappa}`)
-                            }else{
+                            } else {
                                 client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
                                 client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
                                 await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
@@ -566,7 +605,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 try {
                     var points = await getPoints(userstate.username);
                     if (points >= oneVOneCost) {
-                        client.say(channel, `@${userstate['display-name']} a défié @Bibou_LoL pour un 1v1 ! Le combat aura lieu à la fin de la game !`);
+                        client.say(channel, `${userstate['display-name']} a défié @Bibou_LoL pour un 1v1 ! Le combat aura lieu à la fin de la game !`);
                         await givePoints(userstate.username, -oneVOneCost);
                     } else {
                         client.say(channel, `Il te manque ${oneVOneCost - points} points pour pouvoir défier Bibou. Perds pas espoir !`);
@@ -580,7 +619,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 try {
                     var points = await getPoints(userstate.username);
                     if (points >= reviewOPGGCost) {
-                        client.say(channel, `@${userstate['display-name']} a demandé une review de son opgg !`);
+                        client.say(channel, `@{userstate['display-name']} a demandé une review de son opgg !`);
                         await givePoints(userstate.username, -reviewOPGGCost);
                     } else {
                         client.say(channel, `Il te manque ${reviewOPGGCost - points} points pour pouvoir demander une review de ton opgg. Continue de stacker !`);
@@ -591,18 +630,111 @@ client.on('message', async (channel, userstate, message, self) => {
                 }
                 break;
             case 'coaching':
-                var points = await getPoints(userstate.username);
-                if (points >= coachingCost) {
-                    client.say(channel, `@${userstate['display-name']} a demandé un coaching ! Ce sera chose faite !`);
-                    await givePoints(userstate.username, -coachingCost);
-                } else {
-                    client.say(channel, `Il te manque ${coachingCost - points} points pour pouvoir demander un coaching. Tqt ça va le faire !`);
+                try {
+                    var points = await getPoints(userstate.username);
+                    if (points >= coachingCost) {
+                        client.say(channel, `${userstate['display-name']} a demandé un coaching ! Ce sera chose faite !`);
+                        await givePoints(userstate.username, -coachingCost);
+                    } else {
+                        client.say(channel, `Il te manque ${coachingCost - points} points pour pouvoir demander un coaching. Tqt ça va le faire !`);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
                 }
                 break;
             case 'prediction':
                 if (userstate.mod) {
-
+                    client.say(channel, "Une prédictions a été lancée ! Pour participer, tapez !bet <win/loose> <nombrePts> !");
+                    prediction.active = true;
+                } else {
+                    client.say(channel, `Seul les modérateurs peuvent lancer une prédictions.`);
                 }
+                break;
+            case "stopprediction":
+                try {
+                    if (userstate.mod) {
+
+                        client.say(channel, "Allez, on arrête de prédire, c'est enregistré !");
+                        prediction.active = false;
+                    } else {
+                        client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                }
+                break;
+            case 'bet':
+                if (prediction.active) {
+                    if (args.length === 2 && !isNaN(args[1]) && (args[0] === 'win' || args[0] === 'loose')) {
+                        try {
+                            var userPoints = await getPoints(userstate.username);
+                            if (parseInt(args[1]) <= 0) {
+                                client.say(channel, `Veuillez entrer un nombre positif ${userstate['display-name']}.`);
+                                break;
+                            } else if (parseInt(args[1]) > userPoints) {
+                                client.say(channel, `Vous n'avez pas assez de points ${userstate["display-name"]}.`);
+                                break;
+                            } else {
+                                if (args[0] === 'win') {
+                                    prediction.totWin += parseInt(args[1]);
+                                    if (prediction.participants.find(participant => participant.username === userstate.username)) {
+                                        prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
+                                    } else {
+                                        prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: true });
+                                    }
+                                } else if (args[0] === 'loose') {
+                                    prediction.totLoss += parseInt(args[1]);
+                                    if (prediction.participants.find(participant => participant.username === userstate.username)) {
+                                        prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
+                                    } else {
+                                        prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: false });
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error(error);
+                            client.say(channel, `Il y a eu un problème lors du bet.`);
+                        }
+                    } else {
+                        client.say(channel, `Veuillez entrer la commande !bet <win/loose> <nombrePts>.`);
+                    }
+                } else {
+                    client.say(channel, `Il n'y a pas de prédictions en cours.`);
+                }
+                break;
+            case 'result':
+                try {
+                    if (userstate.mod) {
+                        console.log(prediction)
+                        if (args.length === 1 && (args[0] === 'win' || args[0] === 'loose')) {
+                            prediction.active = false;
+                            var win = args[0] === 'win';
+                            prediction["winOdds"] = prediction.totLoss === 0 ? 1 : prediction.totWin / prediction.totLoss;
+                            prediction["looseOdds"] = prediction.totWin === 0 ? 1 : prediction.totLoss / prediction.totWin;
+                            for (let i = 0; i < prediction.participants.length; i++) {
+                                if (prediction.participants[i].win === win) {
+                                    let amount = prediction.participants[i].bet * (win ? prediction.looseOdds : prediction.winOdds);
+                                    await givePoints(prediction.participants[i].username, amount);
+                                } else {
+                                    await givePoints(prediction.participants[i].username, -prediction.participants[i].bet);
+                                }
+                            }
+                            prediction.totWin = 0;
+                            prediction.totLoss = 0;
+                            prediction.participants = [];
+                        } else {
+                            client.say(channel, `Veuillez entrer la commande !result <win/loose>.`);
+                        }
+                    } else {
+                        client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                }
+
                 break;
             case 'top3':
                 try {
@@ -610,7 +742,7 @@ client.on('message', async (channel, userstate, message, self) => {
                     const topThreeUsers = await collection.find().sort({ points: -1 }).limit(4).toArray();
 
                     // Print the top 3 users and their points
-                    
+
                     message = 'Top 3 des viewers:';
                     // ignore the first user because it's the bot
                     for (let i = 1; i < topThreeUsers.length; i++) {
@@ -789,6 +921,7 @@ async function getPoints(username) {
     // Fetch documents
     var fetchedDocuments = await collection.find({ username: username }).toArray();
     if (fetchedDocuments.length === 0) {
+        await collection.insertOne({ username: username, points: 0 });
         return 0;
     } else {
         return fetchedDocuments[0].points;

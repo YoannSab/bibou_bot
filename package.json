@@ -18,6 +18,8 @@
     "gpt3": "^2.1.1",
     "mongodb": "^5.2.0",
     "openai": "^3.2.1",
+    "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
     "puppeteer": "^19.8.3",
     "request": "^2.88.2",
     "spotify-web-api-node": "^5.0.2",
