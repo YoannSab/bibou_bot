@@ -133,7 +133,7 @@ passport.use(new LocalStrategy(
   */
 // Configuration du serveur Web pour gérer l'authentification OAuth
 const app = express();
-const session = require('express-session');
+//const session = require('express-session');
 /*
 app.use(session({
   secret: 'mysecret',
