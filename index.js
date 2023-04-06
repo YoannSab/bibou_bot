@@ -44,6 +44,7 @@ var oneVOneReward = 200;
 var skipsongCost = 50;
 var reviewOPGGCost = 500;
 var skinCost = 30;
+var songrequestCost = 30;
 //credentials
 
 const username = process.env.TWITCH_USERNAME;
@@ -214,7 +215,6 @@ try {
 client.on('message', async (channel, userstate, message, self) => {
     if (self) return;
 
-
     if (giveaway.active && message.toLowerCase() === giveaway.motclé.toLowerCase()) {
         giveaway.participants.add(userstate['display-name']);
     }
@@ -277,22 +277,32 @@ client.on('message', async (channel, userstate, message, self) => {
                     if (points < lowCost) {
                         client.say(channel, `@${userstate.username} n'a pas assez de points pour faire ça`);
                     } else {
-                        client.say(channel, `Yo @${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
+                        client.say(channel, `Yo ${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
                         await givePoints(userstate.username, -lowCost);
                         await givePoints(name.slice(1).toLowerCase(), -lowCost);
+                        client.say(channel, `Pour s'être fait low, ${name} a perdu ${lowCost} points`);
                     }
                 } else {
                     client.say(channel, `Yo ${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
                 }
                 break;
             case 'songrequest':
+                
                 if (allow_music) {
                     const query = message.substring('!songrequest'.length).trim();
-                    if (query.length > 0) {
-                        await searchAndQueueSong(query, channel);
-                    } else {
-                        client.say(channel, 'Veuillez fournir une requête pour la recherche de chansons. Exemple: !songrequest The Beatles');
+                    var points = await getPoints(userstate.username);
+                    if(points < songrequestCost) {
+                        client.say(channel, `Il te manque ${songrequestCost - points} points pour faire ça !`);
                     }
+                    else{
+                        if (query.length > 0) {
+                            await searchAndQueueSong(query, channel);
+                            await givePoints(userstate.username, -songrequestCost);
+                        } else {
+                            client.say(channel, 'Veuillez fournir une requête pour la recherche de chansons. Exemple: !songrequest The Beatles');
+                        }
+                    }
+                    
                 } else {
                     client.say(channel, 'Ajout de musique interdit');
                 }
@@ -352,9 +362,13 @@ client.on('message', async (channel, userstate, message, self) => {
                     } else {
                         other = other.join(' ');
                         if (other.startsWith("@")) {
-                            client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
-                            client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
-                            await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
+                            if(other.slice(1).toLowerCase() == userstate.username) {
+                                client.say(channel, `Tu peux pas t'aimer toi même ${emoticons.Kappa}`)
+                            }else{
+                                client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
+                                client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
+                                await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
+                            }
                         } else {
                             client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
                         }
@@ -367,7 +381,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 break;
             // case a command that explains the the rewards and the costs of the game
             case 'rules':
-                client.say(channel, `Ce qui coute : !hint(${hintCost} points), !low(${lowCost} points), !skip(${skipsongCost} points), !skin(${skinCost} points), !reviewopgg(${reviewOPGGCost} points), !coaching(${coachingCost} points), !onevone(${oneVOneCost} points)`);
+                client.say(channel, `Ce qui coute : !hint(${hintCost} points), !low(${lowCost} points), se faire !low (${lowCost}), !skip(${skipsongCost} points), !skin(${skinCost} points), !reviewopgg(${reviewOPGGCost} points), !coaching(${coachingCost} points), !onevone(${oneVOneCost} points)`);
                 client.say(channel, `Ce qui rapporte : Envoyer un message (1 point), !guess(${guessReward} points), !love(dépend du % d'amour), !gift (dépend du don), !onevone (${oneVOneReward} points si gagné), !prediction(depend de la cote)`);
                 break;
             case 'infos':
@@ -593,14 +607,15 @@ client.on('message', async (channel, userstate, message, self) => {
             case 'top3':
                 try {
                     // Get the top 3 users with the most points
-                    const topThreeUsers = await collection.find().sort({ points: -1 }).limit(3).toArray();
+                    const topThreeUsers = await collection.find().sort({ points: -1 }).limit(4).toArray();
 
                     // Print the top 3 users and their points
                     
                     message = 'Top 3 des viewers:';
-                    topThreeUsers.forEach((user, index) => {
-                        message += ` ${index + 1}. ${user.username} (${user.points} points)`;
-                    });
+                    // ignore the first user because it's the bot
+                    for (let i = 1; i < topThreeUsers.length; i++) {
+                        message += ` ${i}. ${topThreeUsers[i].username} (${topThreeUsers[i].points} points)`;
+                    }
                     client.say(channel, message);
                 } catch (error) {
                     //console.error(error);
