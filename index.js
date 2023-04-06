@@ -199,6 +199,7 @@ try {
     // Select the database and collection
     db = clientmongo.db('biboubot_bd'); // Replace 'test_db' with your database name
     collection = db.collection('channel_points'); // Replace 'test_collection' with your collection name
+    console.log("Connected to MongoDB");
 } catch (e) {
     console.error(e);
 }
