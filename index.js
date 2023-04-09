@@ -43,9 +43,9 @@ var lowCost = 10;
 var guessReward = 20;
 var coachingCost = 3000;
 var oneVOneCost = 2000;
-var oneVOneReward = 200;
-var skipsongCost = 50;
-var reviewOPGGCost = 500;
+var oneVOneReward = 300;
+var skipsongCost = 30;
+var reviewOPGGCost = 150;
 var skinCost = 30;
 var songrequestCost = 30;
 //credentials
@@ -330,12 +330,37 @@ app.post('/login', (req, res, next) => {
     })(req, res, next);
 });
 
+app.get('/api/get_channel_points' , async (req, res) => {
+    try {
+      const username = req.query.username || "";
+      const channelPoints = await getChannelPoints(username);
+      res.send(JSON.stringify(channelPoints));
+    } catch(e) {
+      console.error(e);
+      res.status(500).send('Error while retrieving channel points.');
+    }
+  });
+  
 
 app.get('/logout', function (req, res) {
     req.logout();
     res.redirect('/');
 });
-
+app.get('/rules', function (req, res) {
+    if (req.isAuthenticated()) {
+        res.render('rules', { authenticated: true, username: req.user.username });
+    } else {
+        res.render('rules', { authenticated: false });
+    }
+});
+app.get('/modo', function (req, res) {
+    if(req.isAuthenticated()){
+        res.render('modo', { authenticated: true, username: req.user.username });
+    }else{
+        res.redirect('/login');
+    }
+    
+});
 app.use(function (err, req, res, next) {
     console.error(err.stack);
     res.status(500).send('Something broke!');
@@ -380,16 +405,7 @@ client.on('message', async (channel, userstate, message, self) => {
             case 'winrate':
                 await handleWinrate(channel, message);
                 break;
-            case 'factlol':
-                // Récupérer une fact aléatoire sur League of Legends depuis "League of Legends Wiki"
-                const fact = await getRandomFact();
-                // Envoyer la fact aléatoire sur League of Legends dans le chat
-                if (fact) {
-                    client.say(channel, `${fact}`);
-                } else {
-                    client.say(channel, "Désolé, je n'ai pas pu récupérer de fact aléatoire sur League of Legends !");
-                }
-                break;
+          
             case 'music':
                 spotifyApi.getMyCurrentPlaybackState()
                     .then(data => {
@@ -408,13 +424,7 @@ client.on('message', async (channel, userstate, message, self) => {
                         client.say(channel, 'Bibou a oublié de se connecter à Spotify !');
                     });
                 break;
-            case 'hello':
-                if (args.length > 0) {
-                    client.say(channel, `Hello ${args.join(' ')} !`);
-                } else {
-                    client.say(channel, `Hello ${userstate['display-name']} !`);
-                }
-                break;
+
             case 'low':
                 var points = await getPoints(userstate.username);
                 var name = message.substring("!low".length).trim();
@@ -532,12 +542,8 @@ client.on('message', async (channel, userstate, message, self) => {
             case 'infos' || 'help':
                 client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !factlol, !low @qqun, !game, !idee, !love (nom de la personne), !story (nom du champion), !guess, !streak', '!prediction (nom du champion), !gift , !reviewopgg, !coaching, !onevone, !skip, !hint, !try (nom du champion), !rules, !infos');
                 break;
-            case 'idee': !
-                client.say(channel, 'Donne ton idée de commande : https://forms.gle/WMQprchNg8gQvYrc9');
-                break;
-            case 'story':
-                await handleStory(channel, message);
-                break;
+         
+      
             case 'game':
                 await handleGame(channel, message);
                 break;
@@ -773,7 +779,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 break;
             case 'bet':
                 if (prediction.active) {
-                    if (args.length === 2 && !isNaN(args[1]) && (args[0] === 'win' || args[0] === 'loose')) {
+                    if (args.length === 2 && !isNaN(args[1]) && (args[0] === 'win' || args[0] === 'loose' || args[0] === 'lose')) {
                         try {
                             var userPoints = await getPoints(userstate.username);
                             if (parseInt(args[1]) <= 0) {
@@ -999,6 +1005,31 @@ async function handleSkin(channel, championName, userstate) {
         }
     })();
     */
+}
+async function getChannelPoints(username = ""){
+    try {
+        // query to get all documents in the collection expect the username "bibou_bot" and sort them by points
+        var res = await collection.find({ username: { $ne: "bibou_bot" } }).sort({ points: -1 }).toArray();
+        if (username !== "") {
+            // Find the user with the given username in the collection
+            const user = await collection.findOne({ username : username});
+            console.log(user);
+            if (user) {
+              // Get the index of the user in the sorted array of all documents
+              const index = res.findIndex(doc => doc.username === user.username);
+              console.log(index);
+              // Return the user object and index
+              return { user, index };
+            } else {
+              // Return null if user is not found
+              return null;
+            }
+        }
+        return res;
+    }catch(err){
+        console.log(err);
+        return null;
+    }
 }
 async function givePoints(target, points) {
     try {

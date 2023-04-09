@@ -73,6 +73,7 @@ function fetchGiveaway(event) {
       // access the HTML elements and fill them with the data
       const participantsList = document.getElementById('nomsParticipants');
       const winnerName = document.getElementById('nomGagnant');
+      if(giveaway.participants.length != 0){
         participantsList.innerHTML = '';
         for (let participant of Array.from(giveaway.participants)) {
           const li = document.createElement('li');
@@ -82,7 +83,9 @@ function fetchGiveaway(event) {
         document.getElementById('participants').style.display = 'block';
         winnerName.textContent = giveaway.winner;
         document.getElementById('gagnant').style.display = 'block';
-        
+    }else{
+        document.getElementById('erreurMessage').textContent = 'Aucun giveway terminé';
+    }
       
     })
     .catch(error => {

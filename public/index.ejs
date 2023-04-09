@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classement des points de chaîne</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <style>
+    body {
+      background-color: #f7f7f7;
+    }
+
+    .container {
+      margin-top: 2rem;
+    }
+
+    .left {
+      margin-right: 1rem;
+    }
+
+    table {
+      margin-top: 2rem;
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    th {
+      background-color: #63f0a7;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 0.5rem;
+    }
+
+    td {
+      background-color: #edf2f7;
+      font-size: 1.1rem;
+      padding: 0.5rem;
+    }
+
+    #search-btn {
+      margin-top: 1rem;
+      margin-left: 0.5rem;
+    }
+
+    #user-score {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .box {
+      height: 60vh;
+      /* sets the height of the box to 90% of the viewport height */
+      width: 60vw;
+      /* sets the width of the box to 90% of the viewport width */
+      margin: auto;
+      /* centers the box horizontally */
+      max-width: 800px;
+      /* sets the maximum width of the box */
+    }
+
+    .table-wrapper {
+      overflow: auto;
+      max-height: 400px;
+      /* adjust this value as needed */
+      position: relative;
+    }
+
+    .table-wrapper thead tr {
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar is-large" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <img src="https://static.vecteezy.com/system/resources/previews/001/205/634/non_2x/owl-png.png">
+      </a>
+    </div>  
+    <div id="navbarBasicExample" class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/">
+          Accueil
+        </a>
+        <a class="navbar-item" href="/rules">
+          Règles et commandes
+        </a>
+      </div>
+      <div class="navbar-item is-hidden-touch">
+        <p class="title is-4">Tableau des points de chaîne</p>
+      </div>
+      <div class="navbar-end">
+        <% if (authenticated) { %>
+          <div class="navbar-item">
+            <div class="buttons">
+              <a class="button is-primary" href="/modo">
+                <strong>Espace modération</strong>
+              </a>
+            </div>
+          </div>
+          <% } else { %>
+            <div class="navbar-item">
+              <div class="buttons">
+                <a class="button is-primary" href="/login">
+                  <strong>Se connecter</strong>
+                </a>
+              </div>
+            </div>
+          <% } %>
+      </div>
+    </div>
+
+  </nav>
+  <section class="hero is-primary is-fullheight">
+    <div class="hero-body">
+      <div class="columns is-vcentered">
+        <div class="column">
+          <div class="box">
+            <h1 class="title has-text-primary has-text-centered">Classement des points de chaîne</h1>
+            <div class="table-wrapper">
+              <table class="table is-fullwidth">
+                <thead>
+                  <tr>
+                    <th data-sort-method="number">Position</th>
+                    <th data-sort-default>Pseudo</th>
+                    <th data-sort-method="number">Points de chaîne</th>
+                    <th data-sort-method="number">Niveau</th>
+                  </tr>
+                </thead>
+                <tbody id="table-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box">
+            <h1 class="title has-text-primary has-text-centered">Rechercher un utilisateur</h1>
+            <form class="field is-grouped" id="channel_point_form">
+              <div class="control is-expanded">
+                <label for="username" class="label">Entrez votre pseudo :</label>
+                <input type="text" id="username" name="username" required class="input" />
+              </div>
+              <div class="control">
+                <button id="search-btn" class="button is-primary">Rechercher</button>
+              </div>
+            </form>
+            <table id="user_score">
+
+              <tbody id="user_score_body">
+              </tbody>
+            </table>
+            
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <script src="index.js"></script>
+  </section>

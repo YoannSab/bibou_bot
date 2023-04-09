@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Chat Bot Twitch</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <script src="./fonctions.js"></script>
+    <style>
+        body {
+            background-color: #f7f7f7;
+        }
+
+        .block:not(:last-child) {
+            margin-bottom: 1.5rem;
+        }
+
+        .box {
+            height: 50vh;
+            /* sets the height of the box to 90% of the viewport height */
+            width: 27vw;
+            /* sets the width of the box to 90% of the viewport width */
+            margin: auto;
+            /* centers the box horizontally */
+            max-width: 800px;
+            /* sets the maximum width of the box */
+        }
+
+        .field-label label {
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .container {
+            padding-top: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .buttons {
+            margin-top: 1rem;
+            ;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar is-large" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/">
+                <img src="https://static.vecteezy.com/system/resources/previews/001/205/634/non_2x/owl-png.png">
+            </a>
+        </div>
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a class="navbar-item" href="/">
+                    Accueil
+                </a>
+                <a class="navbar-item" href="/rules">
+                    Règles et commandes
+                </a>
+            </div>
+            <div class="navbar-item is-hidden-touch">
+                <p class="title is-4">Bibou Bot</p>
+            </div>
+            <div class="navbar-end"></div>
+            <% if (authenticated) { %>
+                <div class="navbar-item is-hidden-touch">
+                    <p class="title is-4">Bienvenue, <%= username %></p>
+                </div>
+              <% }  %>
+               
+            
+        </div>
+
+    </nav>
+    <section class="hero is-fullheight is-primary">
+        <div class="hero-body">
+            <div class="container">
+                <div class="columns">
+                    <div class="column">
+                        <div class="block">
+                            <div class="box">
+                                <div class="title has-text-primary has-text-centered">
+                                    Connexion
+                                </div>
+                                <div class="subtitle has-text-primary-dark has-text-centered">
+                                    Connectez-vous pour accéder à toutes les fonctionnalités de Bibou Bot
+                                </div>
+                                <div class="buttons is-justify-content-center">
+                                    <button id="connect-button" class="button is-primary is-medium">
+                                        Connexion au Chat
+                                    </button>
+                                </div>
+                                <div class="buttons is-justify-content-center">
+                                    <a href="login-spotify" target="_blank" class="button is-light is-primary is-medium">
+                                        Connexion a spotify
+                                    </a>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="column">
+                        <div class="box">
+                            <h1 class="title has-text-primary has-text-centered">
+                                Paramètres du bot
+                            </h1>
+                            <form onsubmit="setDelay(event)" class="field">
+                                <div class="field-label is-normal has-text-centered">
+                                    <label class="label">Durée entre deux guess :</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="control is-expanded">
+                                            <input type="text" id="duree" name="duree" placeholder="Temps en seconde"
+                                                class="input">
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="control">
+                                            <button type="submit" class="button is-primary">Valider</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="container has-text-centered">
+                                <span class="is-size-5">Autoriser l'ajout en file d'attente</span>
+                                <div class="buttons is-centered" style="padding-bottom: 1rem;">
+                                    <button id="allowMusic" class="button is-primary is-outlined"
+                                        style="margin-right: 0.5rem;">Oui</button>
+                                    <button id="disallowMusic" class="button is-primary is-outlined">Non</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="column">
+                        <div class="box">
+                            <h1 class="title has-text-primary has-text-centered">
+                                Récupérer les données
+                            </h1>
+                            <section id="objets">
+                                <form id="giveawayForm" class="field is-grouped is-centered is-justify-content-center">
+                                  <div class="control">
+                                    <button class="button is-primary">Récupérer les données du dernier giveaway</button>
+                                  </div>
+                                </form>
+                                <div id="participants" style="display: none;">
+                                  <div class="subtitle has-text-primary">Participants</div>
+                                  <ul id="nomsParticipants"></ul>
+                                </div>
+                                <div id="erreurMessage" class="subtitle has-text-centered has-text-primary"></div>
+                                <div id="gagnant" style="display: none;">
+                                  <div class="subtitle has-text-primary">Gagnant </div>
+                                  <span id="nomGagnant"></span>
+                                </div>
+                              </section>
+                              
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+    </section>
+</body>
+
+</html>
