@@ -20,7 +20,7 @@ var phraseGG = JSON.parse(fs.readFileSync('./gg.json'));
 phraseGG = phraseGG.map(function (x) { return x.replace(/Bibou/g, '[]'); });
 var champToGuess = {};
 var giveaway = { active: false, participants: new Set(), winner: "", motclé: "" };
-var votes = { active: false, voter: "" };
+var votes = { active: false};
 var prediction = { active: false, participants: [], totWin: 0, totLoss: 0 };
 const phraseLow = JSON.parse(fs.readFileSync('./clash.json'));
 // Dictionnaire des émoticônes
@@ -421,7 +421,7 @@ client.on('message', async (channel, userstate, message, self) => {
                     })
                     .catch(err => {
                         //console.error('Erreur lors de la récupération des informations sur la musique en cours de lecture :', err);
-                        client.say(channel, 'Bibou a oublié de se connecter à Spotify !');
+                        //client.say(channel, 'Bibou a oublié de se connecter à Spotify !');
                     });
                 break;
 
@@ -435,19 +435,18 @@ client.on('message', async (channel, userstate, message, self) => {
                         client.say(channel, `Yo ${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
                         await givePoints(userstate.username, -lowCost);
                         await givePoints(name.slice(1).toLowerCase(), -lowCost);
-                        client.say(channel, `Pour s'être fait low, ${name} a perdu ${lowCost} points`);
+                        //client.say(channel, `Pour s'être fait low, ${name} a perdu ${lowCost} points`);
                     }
                 } else {
                     client.say(channel, `Yo ${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
                 }
                 break;
             case 'songrequest':
-
                 if (allow_music) {
                     const query = message.substring('!songrequest'.length).trim();
                     var points = await getPoints(userstate.username);
                     if (points < songrequestCost) {
-                        client.say(channel, `Il te manque ${songrequestCost - points} points pour faire ça !`);
+                        //client.say(channel, `Il te manque ${songrequestCost - points} points pour faire ça !`);
                     }
                     else {
                         if (query.length > 0) {
@@ -471,7 +470,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 } else {
                     lastGuess = currentTime;
                     const randomChampion = Object.keys(championsList)[Math.floor(Math.random() * Object.keys(championsList).length)];
-                    client.say(channel, `Trouvez le champion ! \n Pour proposer, tapez !try (champion). \n Pour avoir un indice, tapez !hint. Pour abandonner, tapez !abandon \n`);
+                    //client.say(channel, `Trouvez le champion ! \n Pour proposer, tapez !try (champion). \n Pour avoir un indice, tapez !hint. Pour abandonner, tapez !abandon \n`);
                     client.say(channel, `-> ${championsList[randomChampion].slice(0, 2)}`);
                     champToGuess = {};
                     champToGuess["name"] = randomChampion;
@@ -490,11 +489,18 @@ client.on('message', async (channel, userstate, message, self) => {
                     client.say(channel, `Le champion à deviner était ${champToGuess["name"]} !`);
                     champToGuess = {};
                 } else {
-                    client.say(channel, `Aucun jeu en cours`);
+                    //client.say(channel, `Aucun jeu en cours`);
                 }
                 break;
             case 'streak':
-                await handleStreak(channel, userstate, message);
+                var account;
+                if(isNaN(args[0])){
+                    account = 0
+                }else{
+                    account = parseInt(args[0])
+                }
+                await handleStreak(channel, account);
+                
                 break;
             case 'elo':
                 await handleElo(channel);
@@ -518,10 +524,10 @@ client.on('message', async (channel, userstate, message, self) => {
                         other = other.join(' ');
                         if (other.startsWith("@")) {
                             if (other.slice(1).toLowerCase() == userstate.username) {
-                                client.say(channel, `Tu peux pas t'aimer toi même ${emoticons.Kappa}`)
+                                //client.say(channel, `Tu peux pas t'aimer toi même ${emoticons.Kappa}`)
                             } else {
                                 client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
-                                client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
+                                //client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
                                 await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
                             }
                         } else {
@@ -535,15 +541,10 @@ client.on('message', async (channel, userstate, message, self) => {
                 }
                 break;
             // case a command that explains the the rewards and the costs of the game
-            case 'rules':
-                client.say(channel, `Ce qui coute : !hint(${hintCost} points), !low(${lowCost} points), se faire !low (${lowCost}), !skip(${skipsongCost} points), !skin(${skinCost} points), !reviewopgg(${reviewOPGGCost} points), !coaching(${coachingCost} points), !onevone(${oneVOneCost} points)`);
-                client.say(channel, `Ce qui rapporte : Envoyer un message (1 point), !guess(${guessReward} points), !love(dépend du % d'amour), !gift (dépend du don), !onevone (${oneVOneReward} points si gagné), !prediction(depend de la cote)`);
-                break;
+
             case 'infos' || 'help':
                 client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !factlol, !low @qqun, !game, !idee, !love (nom de la personne), !story (nom du champion), !guess, !streak', '!prediction (nom du champion), !gift , !reviewopgg, !coaching, !onevone, !skip, !hint, !try (nom du champion), !rules, !infos');
                 break;
-         
-      
             case 'game':
                 await handleGame(channel, message);
                 break;
@@ -553,23 +554,16 @@ client.on('message', async (channel, userstate, message, self) => {
                     var championName = message.substring('!skin'.length).trim();
                     if (championName.length === 0) {
                         client.say(channel, `Veuillez entrer un nom de champion.`);
-                    } else {
-                        var points = await getPoints(userstate.username);
-                        if (points < skinCost) {
-                            client.say(channel, `Vous n'avez pas assez de points pour cette commande.`);
-
-                        } else {
-                            await handleSkin(channel, championName, userstate);
-                            await givePoints(userstate.username, -skinCost);
-                        }
-
+                    } else {   
+                        await handleSkin(channel, championName, userstate);
                     }
                 } else {
-                    client.say(channel, `Un vote est en cours, c'est ${votes.voter} qui décide du skin.`);
+                    //client.say(channel, `Un vote est en cours, c'est ${votes.voter} qui décide du skin.`);
                 }
                 break;
             case 'vote':
                 if (votes.active) {
+                    /*
                     if (userstate.username === votes.voter) {
                         const vote = parseInt(message.substring('!vote'.length).trim());
                         if (vote > 0) {
@@ -580,9 +574,13 @@ client.on('message', async (channel, userstate, message, self) => {
                             }
                             return;
                         }
+                    }*/
+                    var vote;
+                    try{
+                        vote = parseInt(args[0]);
+                    }catch(err){
+                        vote = 1;
                     }
-                    /*
-                    const vote = parseInt(message.substring('!vote'.length).trim());
                     if (vote > 0) {
                         if (votes[vote]) {
                             votes[vote] += 1;
@@ -592,7 +590,7 @@ client.on('message', async (channel, userstate, message, self) => {
                     } else {
                         client.say(channel, `Veuillez entrer un numéro de skin valide.`);
                     }
-                    */
+                    
                 } else {
                     client.say(channel, `Il n'y a pas de vote en cours.`);
                 }
@@ -638,20 +636,14 @@ client.on('message', async (channel, userstate, message, self) => {
                         return `#${index + 1} ${player.name}/${player.elo}/(${player.victories}W/${player.defeats}L)`;
                     }).join(", ");
 
-                    client.say(channel, `TOP 3 du SOLOQ :     ${message}`);
-
                     const streak = await getMatchHistory("Michıkatsu");
+                    client.say(channel, `TOP 3 du SOLOQ :     ${message}`);
                     client.say(channel, `BIBOU  #${bibou.rank}/ ${bibou.elo}/(${bibou.victories}W/${bibou.defeats}L) -> ${streak}`);
 
                 } catch (error) {
                     console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des informations du soloqchallenge.`);
-                    try {
-                        const streak = await getMatchHistory("Michıkatsu");
-                        client.say(channel, `BIBOU  streak -> ${streak}`);
-                    } catch (error) {
-                        console.error(error);
-                    }
+                    //client.say(channel, `Il y a eu un problème lors de la récupération des informations du soloqchallenge.`);
+                    
                 }
                 break;
             case 'setdelay':
@@ -929,6 +921,7 @@ function parseCommand(message) {
 }
 async function handleSkin(channel, championName, userstate) {
     const skins = await fetchChampionSkins(championName);
+    /*
     (async () => {
         if (skins.length !== 0) {
             // assigne un index a chaque skin
@@ -962,10 +955,9 @@ async function handleSkin(channel, championName, userstate) {
         } else {
             client.say(channel, `Le champion ${championName} n'existe pas !`);
         }
-    })();
+    })();   
+    */
 
-
-    /*
     (async () => {
         const skins = await fetchChampionSkins(championName);
         if (skins.length !== 0) {
@@ -1004,7 +996,6 @@ async function handleSkin(channel, championName, userstate) {
             client.say(channel, `Il y a eu un problème avec la récupération des skins.`);
         }
     })();
-    */
 }
 async function getChannelPoints(username = ""){
     try {
@@ -1115,34 +1106,17 @@ async function handleWinrate(channel, command) {
 async function handleHint(channel, username) {
     try {
         if (Object.keys(champToGuess).length === 0) {
-            client.say(channel, `Aucun champion n'est en cours de devinette !`);
+            //client.say(channel, `Aucun champion n'est en cours de devinette !`);
         } else {
             var points = await getPoints(username);
             if (points < hintCost) {
-                client.say(channel, `Vous n'avez pas assez de points pour demander un indice !`);
+                //client.say(channel, `Vous n'avez pas assez de points pour demander un indice !`);
             } else {
                 await givePoints(username, -hintCost);
                 if (champToGuess["hint"] === 0) {
                     client.say(channel, `Voici un indice : ${championsList[champToGuess["name"]][2]}`);
                     champToGuess["hint"] = 1;
-                } else if (champToGuess["hint"] === 1) {
-                    client.say(channel, `Voici un indice : ${championsList[champToGuess["name"]][3]}`);
-                    champToGuess["hint"] = 2;
-                } else if (champToGuess["hint"] === 2) {
-                    const versionsResponse = await axios.get('https://ddragon.leagueoflegends.com/api/versions.json');
-                    const latestVersion = versionsResponse.data[0];
-                    const championsResponse = await axios.get(`https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/fr_FR/champion.json`);
-                    const championData = Object.values(championsResponse.data.data).find(
-                        (champion) => champion.name.toLowerCase() === champToGuess["name"].toLowerCase()
-                    );
-                    if (!championData) {
-                        client.say(channel, `Désolé, je ne connais pas le champion ${champToGuess["name"]}.`);
-                        return;
-                    }
-                    // take  ${championData.blurb} and replace all occurence of champion name by "____"
-                    const blurb = championData.blurb.replace(new RegExp(champToGuess["name"], 'g'), '[Champion]');
-                    client.say(channel, `Voici l'indice final : ${blurb}`);
-                    champToGuess["hint"] = 3;
+                
                 } else {
                     client.say(channel, `Vous avez déjà utilisé tous les indices !`);
                 }
@@ -1171,6 +1145,7 @@ async function handleTry(channel, userstate, message) {
                 case (distance > 90):
                     message = messageRefus[messageRefus.length - 1];
                     break;
+                    /*
                 case (distance > 70):
                     message = messageRefus[messageRefus.length - 2];
                     break;
@@ -1183,21 +1158,34 @@ async function handleTry(channel, userstate, message) {
                 default:
                     message = messageRefus[Math.floor(Math.random() * 2)];
                     break;
+                    */
             }
             client.say(channel, `${message} ${userstate['display-name']} : ${distance}%`);
         }
     }
 }
 
-async function handleStreak(channel) {
+async function handleStreak(channel, account) {
     // Fonction pour récupérer l'historique des parties
-
-    var streak = await getMatchHistory("AKR Bibou");
-    client.say(channel, `Streak de AKR Bibou : ${streak}`);
-    streak = await getMatchHistory("Yoriichı");
-    client.say(channel, `Streak de Yoriichı : ${streak}`);
-    streak = await getMatchHistory("Michıkatsu");
-    client.say(channel, `Streak de Michıkatsu : ${streak}`);
+    var streak;
+    if(account == 1){
+        streak = await getMatchHistory("AKR Bibou");
+        client.say(channel, `Streak de AKR Bibou : ${streak}`);
+    }else if(account == 2){
+        streak = await getMatchHistory("Yoriichı");
+        client.say(channel, `Streak de Yoriichı : ${streak}`);
+    }else if(account == 3){
+        streak = await getMatchHistory("Michıkatsu");
+        client.say(channel, `Streak de Michıkatsu : ${streak}`);
+    }else{
+        streak = await getMatchHistory("AKR Bibou");
+        client.say(channel, `Streak de AKR Bibou : ${streak}`);
+        streak = await getMatchHistory("Yoriichı");
+        client.say(channel, `Streak de Yoriichı : ${streak}`);
+        streak = await getMatchHistory("Michıkatsu");
+        client.say(channel, `Streak de Michıkatsu : ${streak}`);
+    }    
+    
 }
 async function getMatchHistory(username) {
     var histo = [];
@@ -1418,7 +1406,7 @@ async function getSoloQChallengeInfos() {
         const html = await response.text();
         const $ = cheerio.load(html);
         const leaderboard = $('#leaderboard-refresh');
-        const participants = leaderboard.find('.classement-participant');
+        const participants = leaderboard.find('.ranking-list_grid-setup');
         const top3 = [];
         let bibou = null;
 
@@ -1426,10 +1414,10 @@ async function getSoloQChallengeInfos() {
             if (top3.length === 3 && bibou) return;
 
             const rank = $(participant).find('.ranking').text();
-            const name = $(participant).find('.pseudo p').text().trim();
-            const elo = $(participant).find('.rank p').text().trim().replace(/\s+/g, '');
-            const victories = $(participant).find('.wins').text().trim();
-            const defeats = $(participant).find('.losses').text().trim();
+            const name = $(participant).find('.ranking-list_pseudo p').text().trim();
+            const elo = $(participant).find('.ranking-list_rank p').text().trim().replace(/\s+/g, '');
+            const victories = $(participant).find('.ranking-list_wins').text().trim();
+            const defeats = $(participant).find('.ranking-list_losses').text().trim();
 
             if (top3.length < 3) {
                 top3.push({ rank, name, elo, victories, defeats });
