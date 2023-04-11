@@ -500,7 +500,7 @@ client.on('message', async (channel, userstate, message, self) => {
                     account = parseInt(args[0])
                 }
                 await handleStreak(channel, account);
-                
+
                 break;
             case 'elo':
                 await handleElo(channel);
@@ -1144,6 +1144,7 @@ async function handleTry(channel, userstate, message) {
             switch (true) {
                 case (distance > 90):
                     message = messageRefus[messageRefus.length - 1];
+                    client.say(channel, `${message} ${userstate['display-name']} : ${distance}%`);
                     break;
                     /*
                 case (distance > 70):
@@ -1160,7 +1161,7 @@ async function handleTry(channel, userstate, message) {
                     break;
                     */
             }
-            client.say(channel, `${message} ${userstate['display-name']} : ${distance}%`);
+            
         }
     }
 }
