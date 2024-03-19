@@ -12,6 +12,8 @@ const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 
 //data
+const BibouSummonerName = "chill falls1";
+
 const champFile = fs.readFileSync('./champ.json');
 const championsList = JSON.parse(champFile);
 const championNamesFile = fs.readFileSync('./championNames.json');
@@ -32,6 +34,9 @@ const emoticons = {
     Kreygasm: 'Kreygasm',
     TriHard: 'TriHard',
 };
+var winrate = {};
+var winrateDelay = 0//1000 * 60 * 2;
+var lastWinrate = 0;
 
 //paramètres
 var allow_music = false;
@@ -50,7 +55,7 @@ var skinCost = 30;
 var songrequestCost = 30;
 //credentials
 
-
+/*
 const username = process.env.TWITCH_USERNAME;
 const password = process.env.TWITCH_OAUTH_TOKEN;
 const riotApiKey = process.env.RIOT_API_KEY;
@@ -59,8 +64,8 @@ const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
 const mongedb_username = process.env.MONGODB_USERNAME;
 const mongodb_password = process.env.MONGODB_PASSWORD;
+*/
 
-/*
 const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
 const username = keys.twitch_username;
 const password = keys.twitch_oauth;
@@ -70,7 +75,7 @@ const spotifyClientSecret = keys.spotify_client_secret;
 const spotifyRedirectUri = keys.spotify_redirect_uri;
 const mongedb_username = keys.mongodb_username;
 const mongodb_password = keys.mongodb_password;
-*/
+
 
 
 //options de connexion
@@ -99,6 +104,8 @@ async function connect() {
         console.log(err);
     }
 }
+client.connect();
+
 // Tes identifiants Spotify
 const spotifyApi = new SpotifyWebApi({
     clientId: spotifyClientId,
@@ -426,15 +433,15 @@ client.on('message', async (channel, userstate, message, self) => {
                 break;
 
             case 'low':
-                var points = await getPoints(userstate.username);
+                var points = 100000 //await getPoints(userstate.username);
                 var name = message.substring("!low".length).trim();
                 if (name.startsWith("@")) {
                     if (points < lowCost) {
                         client.say(channel, `@${userstate.username} n'a pas assez de points pour faire ça`);
                     } else {
                         client.say(channel, `Yo ${name}, ${phraseLow[Math.floor(Math.random() * phraseLow.length)]}`);
-                        await givePoints(userstate.username, -lowCost);
-                        await givePoints(name.slice(1).toLowerCase(), -lowCost);
+                        // await givePoints(userstate.username, -lowCost);
+                        // await givePoints(name.slice(1).toLowerCase(), -lowCost);
                         //client.say(channel, `Pour s'être fait low, ${name} a perdu ${lowCost} points`);
                     }
                 } else {
@@ -444,19 +451,20 @@ client.on('message', async (channel, userstate, message, self) => {
             case 'songrequest':
                 if (allow_music) {
                     const query = message.substring('!songrequest'.length).trim();
-                    var points = await getPoints(userstate.username);
+                    var points = 100000 //await getPoints(userstate.username);
+                    /*
                     if (points < songrequestCost) {
                         //client.say(channel, `Il te manque ${songrequestCost - points} points pour faire ça !`);
                     }
-                    else {
-                        if (query.length > 0) {
-                            await searchAndQueueSong(query, channel);
-                            await givePoints(userstate.username, -songrequestCost);
-                        } else {
-                            client.say(channel, 'Veuillez fournir une requête pour la recherche de chansons. Exemple: !songrequest The Beatles');
-                        }
+                    */
+                
+                    if (query.length > 0) {
+                        await searchAndQueueSong(query, channel);
+                        //await givePoints(userstate.username, -songrequestCost);
+                    } else {
+                        client.say(channel, 'Veuillez fournir une requête pour la recherche de chansons. Exemple: !songrequest The Beatles');
                     }
-
+                    
                 } else {
                     client.say(channel, 'Ajout de musique interdit');
                 }
@@ -512,7 +520,7 @@ client.on('message', async (channel, userstate, message, self) => {
                 client.say(channel, `Check le lol pro de Bibou : https://lolpros.gg/player/bibou`);
                 break;
             case 'opgg':
-                client.say(channel, `Check l'opgg de Bibou : https://euw.op.gg/summoner/userName=AKR%20Bibou \nCheck l'opgg de Yoriichı : https://euw.op.gg/summoner/userName=Yoriichı`);
+                client.say(channel, `Check l'opgg de Bibou : https://www.op.gg/summoners/euw/chill%20falls1-ADGAP`);
                 break;
             case 'love':
                 try {
@@ -528,7 +536,7 @@ client.on('message', async (channel, userstate, message, self) => {
                             } else {
                                 client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
                                 //client.say(channel, `Etant aimé, ${other} reçoit ${Math.floor(value / 20)} points ${emoticons.Kappa}`)
-                                await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
+                                //await givePoints(other.slice(1).toLowerCase(), Math.floor(value / 20));
                             }
                         } else {
                             client.say(channel, `${userstate['display-name']} aime ${other} à ${value}% ${emoticons.Kappa}`);
@@ -540,15 +548,12 @@ client.on('message', async (channel, userstate, message, self) => {
                     client.say(channel, `Une erreur est survenue ${emoticons.Kappa}`);
                 }
                 break;
-            // case a command that explains the the rewards and the costs of the game
-
             case 'infos' || 'help':
-                client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !factlol, !low @qqun, !game, !idee, !love (nom de la personne), !story (nom du champion), !guess, !streak', '!prediction (nom du champion), !gift , !reviewopgg, !coaching, !onevone, !skip, !hint, !try (nom du champion), !rules, !infos');
+                client.say(channel, 'Commandes disponibles : !elo, !twitter, !skin <nom du champ>, !lolpro, !opgg, !music, !hello, !winrate champion/championadverse (opt) !songrequest (nom de la chanson), !low @qqun, !game, !love (nom de la personne), !guess, !streak');
                 break;
             case 'game':
                 await handleGame(channel, message);
                 break;
-
             case 'skin':
                 if (!votes.active) {
                     var championName = message.substring('!skin'.length).trim();
@@ -597,19 +602,19 @@ client.on('message', async (channel, userstate, message, self) => {
 
                 break;
             case 'skipsong':
-                try {
-                    var points = await getPoints(userstate.username);
-                    if (points >= skipsongCost) {
-                        await spotifyApi.skipToNext();
-                        await givePoints(userstate.username, -skipsongCost);
-                        client.say(channel, `La chanson a été passée.`);
-                    } else {
-                        client.say(channel, `Il vous manque ${skipsongCost - points} points pour passer la chanson.`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors du passage de la chanson.`);
-                }
+                // try {
+                //     var points = await getPoints(userstate.username);
+                //     if (points >= skipsongCost) {
+                //         await spotifyApi.skipToNext();
+                //         await givePoints(userstate.username, -skipsongCost);
+                //         client.say(channel, `La chanson a été passée.`);
+                //     } else {
+                //         client.say(channel, `Il vous manque ${skipsongCost - points} points pour passer la chanson.`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors du passage de la chanson.`);
+                // }
 
                 break;
             case 'enablemusic':
@@ -629,22 +634,22 @@ client.on('message', async (channel, userstate, message, self) => {
                 }
                 break;
             case 'soloq':
-                try {
-                    client.say(channel, "Classement complet : https://soloqchallenge.fr/");
-                    [top3, bibou] = await getSoloQChallengeInfos();
-                    const message = top3.map((player, index) => {
-                        return `#${index + 1} ${player.name}/${player.elo}/(${player.victories}W/${player.defeats}L)`;
-                    }).join(", ");
+                // try {
+                //     client.say(channel, "Classement complet : https://soloqchallenge.fr/");
+                //     [top3, bibou] = await getSoloQChallengeInfos();
+                //     const message = top3.map((player, index) => {
+                //         return `#${index + 1} ${player.name}/${player.elo}/(${player.victories}W/${player.defeats}L)`;
+                //     }).join(", ");
 
-                    const streak = await getMatchHistory("Michıkatsu");
-                    client.say(channel, `TOP 3 du SOLOQ :     ${message}`);
-                    client.say(channel, `BIBOU  #${bibou.rank}/ ${bibou.elo}/(${bibou.victories}W/${bibou.defeats}L) -> ${streak}`);
+                //     const streak = await getMatchHistory("Michıkatsu");
+                //     client.say(channel, `TOP 3 du SOLOQ :     ${message}`);
+                //     client.say(channel, `BIBOU  #${bibou.rank}/ ${bibou.elo}/(${bibou.victories}W/${bibou.defeats}L) -> ${streak}`);
 
-                } catch (error) {
-                    console.error(error);
-                    //client.say(channel, `Il y a eu un problème lors de la récupération des informations du soloqchallenge.`);
+                // } catch (error) {
+                //     console.error(error);
+                //     //client.say(channel, `Il y a eu un problème lors de la récupération des informations du soloqchallenge.`);
                     
-                }
+                // }
                 break;
             case 'setdelay':
                 if (userstate.mod) {
@@ -660,203 +665,203 @@ client.on('message', async (channel, userstate, message, self) => {
                 }
                 break;
             case 'points':
-                try {
-                    var points = await getPoints(userstate.username);
-                    client.say(channel, `@${userstate['display-name']} a ${points} points.`);
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                // try {
+                //     var points = await getPoints(userstate.username);
+                //     client.say(channel, `@${userstate['display-name']} a ${points} points.`);
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
             case 'gift':
-                if (args.length === 2 && !isNaN(args[1])) {
-                    try {
-                        var userPoints = await getPoints(userstate.username);
-                        if (parseInt(args[1]) <= 0) {
-                            client.say(channel, `Veuillez entrer un nombre positif.`);
-                            break;
-                        } else if (parseInt(args[1]) > userPoints) {
-                            client.say(channel, `Vous n'avez pas assez de points.`);
-                            break;
-                        } else {
-                            let other;
-                            args[0].charAt(0) === '@' ? other = args[0].substring(1) : other = args[0]
-                            await givePoints(other.toLowerCase(), parseInt(args[1]));
-                            await givePoints(userstate.username, -parseInt(args[1]));
-                            client.say(channel, `@${userstate['display-name']} a donné ${args[1]} points à @${other}.`);
-                        }
-                    } catch (error) {
-                        console.error(error);
-                        client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                    }
-                } else {
-                    client.say(channel, `Veuillez entrer la commande gift <nom> <nombrePts>.`);
-                }
+                // if (args.length === 2 && !isNaN(args[1])) {
+                //     try {
+                //         var userPoints = await getPoints(userstate.username);
+                //         if (parseInt(args[1]) <= 0) {
+                //             client.say(channel, `Veuillez entrer un nombre positif.`);
+                //             break;
+                //         } else if (parseInt(args[1]) > userPoints) {
+                //             client.say(channel, `Vous n'avez pas assez de points.`);
+                //             break;
+                //         } else {
+                //             let other;
+                //             args[0].charAt(0) === '@' ? other = args[0].substring(1) : other = args[0]
+                //             await givePoints(other.toLowerCase(), parseInt(args[1]));
+                //             await givePoints(userstate.username, -parseInt(args[1]));
+                //             client.say(channel, `@${userstate['display-name']} a donné ${args[1]} points à @${other}.`);
+                //         }
+                //     } catch (error) {
+                //         console.error(error);
+                //         client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                //     }
+                // } else {
+                //     client.say(channel, `Veuillez entrer la commande gift <nom> <nombrePts>.`);
+                // }
                 break;
             case 'biboudb':
-                if (userstate.mod) {
-                    try {
-                        var fetchedDocuments = await collection.find({}).toArray();
-                        console.log('Fetched documents:', fetchedDocuments);
-                    } catch (error) {
-                        console.error(error);
-                    }
-                } else {
-                    client.say(channel, `Seul les modérateurs peuvent accéder à la base de données.`);
-                }
+                // if (userstate.mod) {
+                //     try {
+                //         var fetchedDocuments = await collection.find({}).toArray();
+                //         console.log('Fetched documents:', fetchedDocuments);
+                //     } catch (error) {
+                //         console.error(error);
+                //     }
+                // } else {
+                //     client.say(channel, `Seul les modérateurs peuvent accéder à la base de données.`);
+                // }
                 break;
             case 'onevone':
-                try {
-                    var points = await getPoints(userstate.username);
-                    if (points >= oneVOneCost) {
-                        client.say(channel, `${userstate['display-name']} a défié @Bibou_LoL pour un 1v1 ! Le combat aura lieu à la fin de la game !`);
-                        await givePoints(userstate.username, -oneVOneCost);
-                    } else {
-                        client.say(channel, `Il te manque ${oneVOneCost - points} points pour pouvoir défier Bibou. Perds pas espoir !`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                // try {
+                //     var points = await getPoints(userstate.username);
+                //     if (points >= oneVOneCost) {
+                //         client.say(channel, `${userstate['display-name']} a défié @Bibou_LoL pour un 1v1 ! Le combat aura lieu à la fin de la game !`);
+                //         await givePoints(userstate.username, -oneVOneCost);
+                //     } else {
+                //         client.say(channel, `Il te manque ${oneVOneCost - points} points pour pouvoir défier Bibou. Perds pas espoir !`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
             case 'reviewopgg':
-                try {
-                    var points = await getPoints(userstate.username);
-                    if (points >= reviewOPGGCost) {
-                        client.say(channel, `@{userstate['display-name']} a demandé une review de son opgg !`);
-                        await givePoints(userstate.username, -reviewOPGGCost);
-                    } else {
-                        client.say(channel, `Il te manque ${reviewOPGGCost - points} points pour pouvoir demander une review de ton opgg. Continue de stacker !`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                // try {
+                //     var points = await getPoints(userstate.username);
+                //     if (points >= reviewOPGGCost) {
+                //         client.say(channel, `@{userstate['display-name']} a demandé une review de son opgg !`);
+                //         await givePoints(userstate.username, -reviewOPGGCost);
+                //     } else {
+                //         client.say(channel, `Il te manque ${reviewOPGGCost - points} points pour pouvoir demander une review de ton opgg. Continue de stacker !`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
             case 'coaching':
-                try {
-                    var points = await getPoints(userstate.username);
-                    if (points >= coachingCost) {
-                        client.say(channel, `${userstate['display-name']} a demandé un coaching ! Ce sera chose faite !`);
-                        await givePoints(userstate.username, -coachingCost);
-                    } else {
-                        client.say(channel, `Il te manque ${coachingCost - points} points pour pouvoir demander un coaching. Tqt ça va le faire !`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                // try {
+                //     var points = await getPoints(userstate.username);
+                //     if (points >= coachingCost) {
+                //         client.say(channel, `${userstate['display-name']} a demandé un coaching ! Ce sera chose faite !`);
+                //         await givePoints(userstate.username, -coachingCost);
+                //     } else {
+                //         client.say(channel, `Il te manque ${coachingCost - points} points pour pouvoir demander un coaching. Tqt ça va le faire !`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
             case 'prediction':
-                if (userstate.mod) {
-                    client.say(channel, "Une prédictions a été lancée ! Pour participer, tapez !bet <win/loose> <nombrePts> !");
-                    prediction.active = true;
-                } else {
-                    client.say(channel, `Seul les modérateurs peuvent lancer une prédictions.`);
-                }
+                // if (userstate.mod) {
+                //     client.say(channel, "Une prédictions a été lancée ! Pour participer, tapez !bet <win/loose> <nombrePts> !");
+                //     prediction.active = true;
+                // } else {
+                //     client.say(channel, `Seul les modérateurs peuvent lancer une prédictions.`);
+                // }
                 break;
             case "stopprediction":
-                try {
-                    if (userstate.mod) {
+                // try {
+                //     if (userstate.mod) {
 
-                        client.say(channel, "Allez, on arrête de prédire, c'est enregistré !");
-                        prediction.active = false;
-                    } else {
-                        client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                //         client.say(channel, "Allez, on arrête de prédire, c'est enregistré !");
+                //         prediction.active = false;
+                //     } else {
+                //         client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
             case 'bet':
-                if (prediction.active) {
-                    if (args.length === 2 && !isNaN(args[1]) && (args[0] === 'win' || args[0] === 'loose' || args[0] === 'lose')) {
-                        try {
-                            var userPoints = await getPoints(userstate.username);
-                            if (parseInt(args[1]) <= 0) {
-                                client.say(channel, `Veuillez entrer un nombre positif ${userstate['display-name']}.`);
-                                break;
-                            } else if (parseInt(args[1]) > userPoints) {
-                                client.say(channel, `Vous n'avez pas assez de points ${userstate["display-name"]}.`);
-                                break;
-                            } else {
-                                if (args[0] === 'win') {
-                                    prediction.totWin += parseInt(args[1]);
-                                    if (prediction.participants.find(participant => participant.username === userstate.username)) {
-                                        prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
-                                    } else {
-                                        prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: true });
-                                    }
-                                } else if (args[0] === 'loose') {
-                                    prediction.totLoss += parseInt(args[1]);
-                                    if (prediction.participants.find(participant => participant.username === userstate.username)) {
-                                        prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
-                                    } else {
-                                        prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: false });
-                                    }
-                                }
-                            }
-                        } catch (error) {
-                            console.error(error);
-                            client.say(channel, `Il y a eu un problème lors du bet.`);
-                        }
-                    } else {
-                        client.say(channel, `Veuillez entrer la commande !bet <win/loose> <nombrePts>.`);
-                    }
-                } else {
-                    client.say(channel, `Il n'y a pas de prédictions en cours.`);
-                }
+                // if (prediction.active) {
+                //     if (args.length === 2 && !isNaN(args[1]) && (args[0] === 'win' || args[0] === 'loose' || args[0] === 'lose')) {
+                //         try {
+                //             var userPoints = await getPoints(userstate.username);
+                //             if (parseInt(args[1]) <= 0) {
+                //                 client.say(channel, `Veuillez entrer un nombre positif ${userstate['display-name']}.`);
+                //                 break;
+                //             } else if (parseInt(args[1]) > userPoints) {
+                //                 client.say(channel, `Vous n'avez pas assez de points ${userstate["display-name"]}.`);
+                //                 break;
+                //             } else {
+                //                 if (args[0] === 'win') {
+                //                     prediction.totWin += parseInt(args[1]);
+                //                     if (prediction.participants.find(participant => participant.username === userstate.username)) {
+                //                         prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
+                //                     } else {
+                //                         prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: true });
+                //                     }
+                //                 } else if (args[0] === 'loose') {
+                //                     prediction.totLoss += parseInt(args[1]);
+                //                     if (prediction.participants.find(participant => participant.username === userstate.username)) {
+                //                         prediction.participants.find(participant => participant.username === userstate.username).bet += parseInt(args[1]);
+                //                     } else {
+                //                         prediction.participants.push({ username: userstate.username, bet: parseInt(args[1]), win: false });
+                //                     }
+                //                 }
+                //             }
+                //         } catch (error) {
+                //             console.error(error);
+                //             client.say(channel, `Il y a eu un problème lors du bet.`);
+                //         }
+                //     } else {
+                //         client.say(channel, `Veuillez entrer la commande !bet <win/loose> <nombrePts>.`);
+                //     }
+                // } else {
+                //     client.say(channel, `Il n'y a pas de prédictions en cours.`);
+                // }
                 break;
             case 'result':
-                try {
-                    if (userstate.mod) {
-                        console.log(prediction)
-                        if (args.length === 1 && (args[0] === 'win' || args[0] === 'loose')) {
-                            prediction.active = false;
-                            var win = args[0] === 'win';
-                            prediction["winOdds"] = prediction.totLoss === 0 ? 1 : prediction.totWin / prediction.totLoss;
-                            prediction["looseOdds"] = prediction.totWin === 0 ? 1 : prediction.totLoss / prediction.totWin;
-                            for (let i = 0; i < prediction.participants.length; i++) {
-                                if (prediction.participants[i].win === win) {
-                                    let amount = prediction.participants[i].bet * (win ? prediction.looseOdds : prediction.winOdds);
-                                    await givePoints(prediction.participants[i].username, amount);
-                                } else {
-                                    await givePoints(prediction.participants[i].username, -prediction.participants[i].bet);
-                                }
-                            }
-                            prediction.totWin = 0;
-                            prediction.totLoss = 0;
-                            prediction.participants = [];
-                        } else {
-                            client.say(channel, `Veuillez entrer la commande !result <win/loose>.`);
-                        }
-                    } else {
-                        client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                // try {
+                //     if (userstate.mod) {
+                //         console.log(prediction)
+                //         if (args.length === 1 && (args[0] === 'win' || args[0] === 'loose')) {
+                //             prediction.active = false;
+                //             var win = args[0] === 'win';
+                //             prediction["winOdds"] = prediction.totLoss === 0 ? 1 : prediction.totWin / prediction.totLoss;
+                //             prediction["looseOdds"] = prediction.totWin === 0 ? 1 : prediction.totLoss / prediction.totWin;
+                //             for (let i = 0; i < prediction.participants.length; i++) {
+                //                 if (prediction.participants[i].win === win) {
+                //                     let amount = prediction.participants[i].bet * (win ? prediction.looseOdds : prediction.winOdds);
+                //                     await givePoints(prediction.participants[i].username, amount);
+                //                 } else {
+                //                     await givePoints(prediction.participants[i].username, -prediction.participants[i].bet);
+                //                 }
+                //             }
+                //             prediction.totWin = 0;
+                //             prediction.totLoss = 0;
+                //             prediction.participants = [];
+                //         } else {
+                //             client.say(channel, `Veuillez entrer la commande !result <win/loose>.`);
+                //         }
+                //     } else {
+                //         client.say(channel, `Seul les modérateurs peuvent stopper une prédictions.`);
+                //     }
+                // } catch (error) {
+                //     console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
 
                 break;
             case 'top3':
-                try {
-                    // Get the top 3 users with the most points
-                    const topThreeUsers = await collection.find().sort({ points: -1 }).limit(4).toArray();
+                // try {
+                //     // Get the top 3 users with the most points
+                //     const topThreeUsers = await collection.find().sort({ points: -1 }).limit(4).toArray();
 
-                    // Print the top 3 users and their points
+                //     // Print the top 3 users and their points
 
-                    message = 'Top 3 des viewers:';
-                    // ignore the first user because it's the bot
-                    for (let i = 1; i < topThreeUsers.length; i++) {
-                        message += ` ${i}. ${topThreeUsers[i].username} (${topThreeUsers[i].points} points)`;
-                    }
-                    client.say(channel, message);
-                } catch (error) {
-                    //console.error(error);
-                    client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
-                }
+                //     message = 'Top 3 des viewers:';
+                //     // ignore the first user because it's the bot
+                //     for (let i = 1; i < topThreeUsers.length; i++) {
+                //         message += ` ${i}. ${topThreeUsers[i].username} (${topThreeUsers[i].points} points)`;
+                //     }
+                //     client.say(channel, message);
+                // } catch (error) {
+                //     //console.error(error);
+                //     client.say(channel, `Il y a eu un problème lors de la récupération des points.`);
+                // }
                 break;
 
             default:
@@ -1044,7 +1049,6 @@ async function givePoints(target, points) {
     }
 }
 
-
 async function getPoints(username) {
     // Fetch documents
     var fetchedDocuments = await collection.find({ username: username }).toArray();
@@ -1081,12 +1085,13 @@ async function handleWinrate(channel, command) {
     } else {
         lastWinrate = currentTime;
         [champName, oppChamp] = command.substring("!winrate".length).trim().split("/");
+        if (champName === undefined) champName = "";
         if (oppChamp === undefined) oppChamp = "";
         //if its in the key of championNamesMatch, we replace it with the correct name
         if (championNamesMatch[champName] !== undefined) champName = championNamesMatch[champName];
         if (championNamesMatch[oppChamp] !== undefined) oppChamp = championNamesMatch[oppChamp];
-        console.log(champName, oppChamp);
-        stats = await getStatistics("AKR Bibou-Yoriichı", champName, oppChamp);
+        console.log("champions : ", champName, oppChamp);
+        stats = await getStatistics(BibouSummonerName, champName, oppChamp);
         if (stats === undefined) {
             client.say(channel, "Problème de récupération des stats");
         }
@@ -1096,7 +1101,7 @@ async function handleWinrate(channel, command) {
             if (nbGame === 0)
                 client.say(channel, "Bibou n'a pas joué recemment ce matchup");
             else {
-                client.say(channel, `Bibou a un winrate de ${wr}% avec ${champName} ${oppChamp !== "" ? "contre " + oppChamp : ""} sur ses ${nbGame} dernières parties`);
+                client.say(channel, `Bibou a un winrate de ${(wr*100).toFixed(1)}% ${champName !== "" ? "avec " +champName:"" } ${oppChamp !== "" ? "contre " + oppChamp : ""} sur ses ${nbGame} dernières parties`);
             }
         }
     }
@@ -1108,11 +1113,11 @@ async function handleHint(channel, username) {
         if (Object.keys(champToGuess).length === 0) {
             //client.say(channel, `Aucun champion n'est en cours de devinette !`);
         } else {
-            var points = await getPoints(username);
+            var points = 100000//await getPoints(username);
             if (points < hintCost) {
                 //client.say(channel, `Vous n'avez pas assez de points pour demander un indice !`);
             } else {
-                await givePoints(username, -hintCost);
+                //await givePoints(username, -hintCost);
                 if (champToGuess["hint"] === 0) {
                     client.say(channel, `Voici un indice : ${championsList[champToGuess["name"]][2]}`);
                     champToGuess["hint"] = 1;
@@ -1134,7 +1139,7 @@ async function handleTry(channel, userstate, message) {
         }
         if (champName.toLowerCase() === `${champToGuess["name"].toLowerCase()}`) {
             await givePoints(userstate.username, guessReward);
-            client.say(channel, `Bravo ${userstate.username} ! Vous avez trouvé le champion ${champToGuess["name"]} ! Vous gagnez ${guessReward} points !`);
+            client.say(channel, `Bravo ${userstate.username} ! Vous avez trouvé le champion ${champToGuess["name"]}`); // ! Vous gagnez ${guessReward} points !`);
             champToGuess = {};
         }
         else {
@@ -1170,23 +1175,12 @@ async function handleStreak(channel, account) {
     // Fonction pour récupérer l'historique des parties
     var streak;
     if(account == 1){
-        streak = await getMatchHistory("AKR Bibou");
-        client.say(channel, `Streak de AKR Bibou : ${streak}`);
-    }else if(account == 2){
         streak = await getMatchHistory("Yoriichı");
         client.say(channel, `Streak de Yoriichı : ${streak}`);
-    }else if(account == 3){
-        streak = await getMatchHistory("Michıkatsu");
-        client.say(channel, `Streak de Michıkatsu : ${streak}`);
     }else{
-        streak = await getMatchHistory("AKR Bibou");
-        client.say(channel, `Streak de AKR Bibou : ${streak}`);
-        streak = await getMatchHistory("Yoriichı");
-        client.say(channel, `Streak de Yoriichı : ${streak}`);
-        streak = await getMatchHistory("Michıkatsu");
-        client.say(channel, `Streak de Michıkatsu : ${streak}`);
+        streak = await getMatchHistory(BibouSummonerName);
+        client.say(channel, `Streak de Bibou : ${streak}`);
     }    
-    
 }
 async function getMatchHistory(username) {
     var histo = [];
@@ -1233,7 +1227,7 @@ async function getMatchHistory(username) {
     }
 }
 async function handleElo(channel) {
-    const summonerNames = ['AKR Bibou', 'Yoriichı', 'Michıkatsu'];
+    const summonerNames = [BibouSummonerName] //'Yoriichı'];
 
     const getSummonerInfo = async (summonerName) => {
         try {
@@ -1299,43 +1293,13 @@ async function handleGame(channel, message) {
                 const proMessage = proPlayers.length > 0 ? `Pro dans la game : ${proPlayers}` : "Aucun joueur pro dans la game.";
 
                 client.say(channel, proMessage);
-            } else {
-                throw new Error('Erreur lors de la récupération des données de la partie en direct');
-
             }
         } catch (error) {
-            var summonerNames = ["AKR Bibou", "Yoriichı"]
-            try {
-                var summoner;
-                var gameId;
-                try {
-                    summoner = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${summonerNames[0]}?api_key=${riotApiKey}`);
-                    gameId = await axios.get(`https://euw1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/${summoner.data.id}?api_key=${riotApiKey}`);
-                } catch (error) {
-                    summoner = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${summonerNames[0]}?api_key=${riotApiKey}`);
-                    gameId = await axios.get(`https://euw1.api.riotgames.com/lol/spectator/v4/active-games/by-summoner/${summoner.data.id}?api_key=${riotApiKey}`);
-                }
-                const versionsResponse = await axios.get('https://ddragon.leagueoflegends.com/api/versions.json');
-                const latestVersion = versionsResponse.data[0];
-
-                const championsResponse = await axios.get(
-                    `https://ddragon.leagueoflegends.com/cdn/${latestVersion}/data/fr_FR/champion.json`
-                );
-
-                const players = gameId.data.participants.map(async (participant) => {
-                    const player = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/${participant.summonerId}?api_key=${riotApiKey}`);
-                    const championData = Object.values(championsResponse.data.data).find(
-                        (champion) => champion.key == participant.championId
-                    );
-                    return `${player.data.name} (${championData.name})`;
-                });
-
-                Promise.all(players).then((playerList) => {
-                    client.say(channel, `Joueurs dans la partie: ${playerList.join(', ')}`);
-                });
-            } catch (error) {
-                client.say(channel, `Il y a eu un problème lors de la récupération de la partie :'(.`);
-                console.error(error);
+            if (error.message == "Summoner not in game") {
+                client.say(channel, `${summonerName} n'est pas en game.`);
+            }else{
+                console.error('Erreur lors de la récupération des données de la partie en direct', error);
+                client.say(channel, `Désolé, une erreur est survenue.`);
             }
         }
     })();
@@ -1447,7 +1411,7 @@ async function getSoloQChallengeInfos() {
 }
 
 async function getLiveGame(summonerName) {
-    try {
+
         const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
 
@@ -1465,17 +1429,16 @@ async function getLiveGame(summonerName) {
         await page.click('[aria-controls="#live-game"]');
 
         // Attendez que le contenu de l'onglet soit chargé ou que "Summoner not in game" apparaisse
-        const notInGameElement = 'p[data-v-6315f91d=""]';
+        const notInGameElement = 'p[data-v-6176f300=""]';
         const playerNameElement = '.player-name';
         const elementFound = await Promise.race([
-            page.waitForSelector(notInGameElement, { visible: true, timeout: 5000 }).then(() => 'notInGame'),
-            page.waitForSelector(playerNameElement, { visible: true, timeout: 5000 }).then(() => 'playerName'),
+            page.waitForSelector(notInGameElement, { visible: true, timeout: 2000 }).then(() => 'notInGame'),
+            page.waitForSelector(playerNameElement, { visible: true, timeout: 2000 }).then(() => 'playerName'),
         ]);
 
         if (elementFound === 'notInGame') {
             console.log('Summoner not in game');
             throw new Error('Summoner not in game');
-            return;
         }
 
         const liveGameData = await page.evaluate(() => {
@@ -1511,11 +1474,6 @@ async function getLiveGame(summonerName) {
         await browser.close();
 
         return liveGameData;
-
-
-    } catch (error) {
-        console.error(error);
-    }
 }
 
 async function searchAndQueueSong(query, channel) {
@@ -1608,9 +1566,7 @@ function jaroWinklerDistance(s1, s2) {
     // Conversion en pourcentage et retour du résultat
     return Math.round(jaroWinklerDistance * 100);
 }
-var winrate = {};
-var winrateDelay = 1000 * 60 * 2;
-var lastWinrate = 0;
+
 async function getStatistics(username, champName, opponentChamp) {
     try {
         if (winrate[champName + "," + opponentChamp] === undefined) {
@@ -1625,16 +1581,16 @@ async function getStatistics(username, champName, opponentChamp) {
 async function getStats(username, champName, opponentChamp = "") {
     // Récupération de l'ID du compte à partir du nom d'utilisateur et du serveur
     try {
-        [bibou, yorichii] = username.split("-");
-        var account = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${bibou}?api_key=${riotApiKey}`);
+        let bibou = username //[bibou, yorichii] = username.split("-");
+        let account = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${bibou}?api_key=${riotApiKey}`);
         const bibouId = account.data.puuid;
-        account = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${yorichii}?api_key=${riotApiKey}`);
-        const yorichiiId = account.data.puuid;
+        // account = await axios.get(`https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-name/${yorichii}?api_key=${riotApiKey}`);
+        // const yorichiiId = account.data.puuid;
         // Récupération des 500 dernières parties
         const matchList = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${bibouId}/ids?start=0&count=35&api_key=${riotApiKey}`);
-        const matchList2 = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${yorichiiId}/ids?start=0&count=35&api_key=${riotApiKey}`);
-        var matches = matchList.data;
-        matches = matches.concat(matchList2.data);
+        //const matchList2 = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${yorichiiId}/ids?start=0&count=35&api_key=${riotApiKey}`);
+        let matches = matchList.data;
+        //matches = matches.concat(matchList2.data);
         // Traitement de chaque partie
         let totalGamesBibou = 0;
         let bibouWins = 0;
@@ -1646,31 +1602,33 @@ async function getStats(username, champName, opponentChamp = "") {
             const match = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
             const matchDetails = match.data;
             if (matchDetails.info.gameMode === "CLASSIC") {
-                // Check if the game contains both currentChamp and opponentChampId
-                const bibou = matchDetails.info.participants.find(participant => participant.championName === champName);
-                if (opponentChamp === "") {
-                    if (bibou) {
-                        (i < 35 ? totalGamesBibou++ : totalGamesYorichii++);
+                const bibou = matchDetails.info.participants.find(participant => participant.puuid === bibouId);
+                if (champName === "" && opponentChamp === "") {
+                        totalGamesBibou++;
                         if (bibou.win) {
-                            (i < 35 ? bibouWins++ : yorichiiWins++);
+                            bibouWins++;
                         }
                     }
-
-                } else {
-                    const oppponent = matchDetails.info.participants.find(participant => participant.championName === opponentChamp);
-
-                    if (bibou && oppponent) {
-                        (i < 35 ? totalGamesBibou++ : totalGamesYorichii++);
-                        // Check if bibou won the game
+                else if (champName !== "" && opponentChamp === "") {
+                    if (bibou.championName === champName) {
+                        totalGamesBibou++;
                         if (bibou.win) {
-                            (i < 35 ? bibouWins++ : yorichiiWins++);
+                            bibouWins++;
                         }
                     }
                 }
-
+                else{
+                    const opponent = matchDetails.info.participants.find(participant => participant.championName === opponentChamp);
+                    if (bibou.championName === champName && opponent) {
+                        totalGamesBibou++;
+                        if (bibou.win) {
+                            bibouWins++;
+                        }
+                    }
+                }
             }
         }
-        var winRateBibou = (totalGamesBibou === 0 ? NaN : bibouWins / totalGamesBibou);
+        let winRateBibou = (totalGamesBibou === 0 ? NaN : bibouWins / totalGamesBibou);
         var winRateYorichii = (totalGamesYorichii === 0 ? NaN : yorichiiWins / totalGamesYorichii);
         console.log(winRateBibou, winRateYorichii, totalGamesBibou, totalGamesYorichii);
         if (isNaN(winRateBibou) && isNaN(winRateYorichii)) {
