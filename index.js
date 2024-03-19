@@ -55,26 +55,26 @@ var skinCost = 30;
 var songrequestCost = 30;
 //credentials
 
-/*
-const username = process.env.TWITCH_USERNAME;
-const password = process.env.TWITCH_OAUTH_TOKEN;
-const riotApiKey = process.env.RIOT_API_KEY;
-const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
-const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
-const mongedb_username = process.env.MONGODB_USERNAME;
-const mongodb_password = process.env.MONGODB_PASSWORD;
-*/
 
-const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
-const username = keys.twitch_username;
-const password = keys.twitch_oauth;
-const riotApiKey = keys.riot_api_key;
-const spotifyClientId = keys.spotify_client_id;
-const spotifyClientSecret = keys.spotify_client_secret;
-const spotifyRedirectUri = keys.spotify_redirect_uri;
-const mongedb_username = keys.mongodb_username;
-const mongodb_password = keys.mongodb_password;
+const username = process.env.twitch_username;
+const password = process.env.twitch_oauth;
+const riotApiKey = process.env.riot_api_key;
+const spotifyClientId = process.env.spotify_client_id;
+const spotifyClientSecret = process.env.spotify_client_secret;
+const spotifyRedirectUri = process.env.spotify_redirect_uri;
+const mongedb_username = process.env.mongodb_username;
+const mongodb_password = process.env.mongodb_password;
+
+
+// const keys = JSON.parse(fs.readFileSync('../keys.json', 'utf8'));
+// const username = keys.twitch_username;
+// const password = keys.twitch_oauth;
+// const riotApiKey = keys.riot_api_key;
+// const spotifyClientId = keys.spotify_client_id;
+// const spotifyClientSecret = keys.spotify_client_secret;
+// const spotifyRedirectUri = keys.spotify_redirect_uri;
+// const mongedb_username = keys.mongodb_username;
+// const mongodb_password = keys.mongodb_password;
 
 
 
