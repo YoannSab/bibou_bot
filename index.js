@@ -397,7 +397,7 @@ app.listen(process.env.PORT || 8888, () => {
 /**************BOT******************* */
 /************************************ */
 var commandList = ["elo", "twitter", "lolpro", "opgg", "music", "hello", "winrate", 
-                    "songrequest", "low", "game", "love", "guess", "streak", "giveaway", 
+                    "songrequest", "low", "love", "guess", "streak", "giveaway", 
                     "prediction", "bet", "result", "skipsong", "enablemusic", "disablemusic",
                     "soloq", "setdelay", "points", "gift", "biboudb", "onevone", "reviewopgg",
                     "coaching", "skin", "vote", "top3", "infos", "hint", "try", "abandon", "story", "twitter"
