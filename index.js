@@ -104,7 +104,6 @@ async function connect() {
         console.log(err);
     }
 }
-client.connect();
 
 // Tes identifiants Spotify
 const spotifyApi = new SpotifyWebApi({
