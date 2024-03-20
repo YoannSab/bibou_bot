@@ -901,7 +901,7 @@ client.on('message', async (channel, userstate, message, self) => {
 });
 
 client.on('connected', (address, port) => {
-    //client.action("bibou_lol", "*** Je suis connecté ! ***");
+    client.action("bibou_lol", "*** Je suis connecté ! ***");
 });
 client.on('disconnected', (reason) => {
     client.action("bibou_lol", "Je suis déconnecté !");
