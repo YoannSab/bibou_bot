@@ -295,7 +295,15 @@ app.get('/login-spotify', isAuthenticated,  (req, res) => {
         console.log(e);
     }
 });
-
+app.get('/api/resetWinrate', isAuthenticated, (req, res) => {
+    try{
+        winrate = {};
+        res.send(JSON.stringify('Winrate reset'));
+    }catch(e){
+        console.log(e);
+    }
+}
+);
 app.get('/callback', async (req, res) => {
     const { code, state } = req.query;
 
