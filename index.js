@@ -8,8 +8,6 @@ const express = require('express');
 require('dotenv').config({ path: './.env' });
 
 //data
-const bibouSummonerName = "B1BZ";
-
 const guessGame = JSON.parse(fs.readFileSync('./champ.json'));
 const championNamesMatch = JSON.parse(fs.readFileSync('./championNames.json'));
 const stuffs = JSON.parse(fs.readFileSync('./stuff.json'));
@@ -33,10 +31,36 @@ const spotifyClientId = process.env.SPOTIFY_CLIENT_ID;
 const spotifyClientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 const spotifyRedirectUri = process.env.SPOTIFY_REDIRECT_URI;
 const bibouPuuid = process.env.BIBOU_PUUID;
+const frenchAdPuuid = process.env.FRENCH_AD_PUUID;
+const yorichiPuuid = process.env.YORICHII_PUUID;
+
+const bibouSummonerName = "B1BZ";
+const yorichiSummonerName = "Yoriichı";
+const frenchAdSummonerName = "French AD";
 
 const puuidMatching = {
     [bibouSummonerName]: bibouPuuid,
+    [frenchAdSummonerName]: frenchAdPuuid,
+    [yorichiSummonerName]: yorichiPuuid
 }
+
+const serverMatching = {
+    [bibouSummonerName]: {
+        server: "euw1",
+        name: "europe"
+    },
+    [yorichiSummonerName]: {
+        server: "euw1",
+        name: "europe"
+    },
+    [frenchAdSummonerName]: {
+        server: "kr",
+        name: "asia"
+    }
+}
+
+const currentAccounts = [bibouSummonerName, yorichiSummonerName];
+
 //options de connexion
 const options = {
     options: {
@@ -83,6 +107,11 @@ spotifyApi.clientCredentialsGrant()
     });
 
 const app = express();
+
+app.get('/bibou', (req, res) => {
+    res.sendFile(__dirname + '/bibou.html');
+});
+
 app.get('/login-spotify', (req, res) => {
     try {
         const scopes = [
@@ -308,12 +337,38 @@ client.on('message', async (channel, userstate, message, self) => {
                     client.say(channel, `Stuff de ${champNameAttempt} -> ${twitterLink}`);
                 }
                 break;
+            
+            case 'chall':
+                const challLp = await getLeagueData("chall");
+                client.say(channel, `Le chall est ${serverMatching[currentAccounts[0]].server.toUpperCase()} à ${challLp} LP.` )
+                break;
+            
+            case 'gm':
+                const gmLp = await getLeagueData("gm");
+                client.say(channel, `Le grandmaster ${serverMatching[currentAccounts[0]].server.toUpperCase()} est à ${gmLp} LP.` )
+                break;
+            case "top":
+                const top = parseInt(args[0]);
+                if (!isNaN(top)) {
+                    const [topLp, topIndex] = await getLeagueTopData(top);
+                    client.say(channel, `Le top ${topIndex} ${serverMatching[currentAccounts[0]].server.toUpperCase()} est à ${topLp} LP.` )   
+                }
+                break;
+            default:
+                if (command.includes('top')) {
+                    let top = parseInt(command.replace('top', ''));
+                    if (!isNaN(top)) {
+                        const [topLp, topIndex] = await getLeagueTopData(top);
+                        client.say(channel, `Le top ${topIndex} ${serverMatching[currentAccounts[0]].server.toUpperCase()} est à ${topLp} LP.` )   
+                    }
+                }
+                return;
         }
     }
 });
 
 client.on('connected', (address, port) => {
-    client.action("bibou_lol", "*** Je suis connecté ! ***");
+    //client.action("bibou_lol", "*** Je suis connecté ! ***");
 });
 // client.on('disconnected', (reason) => {
 //     client.action("bibou_lol", "Je suis déconnecté !");
@@ -346,6 +401,30 @@ client.on('connected', (address, port) => {
 /************************************ */
 /**************FUNCTIONS************* */
 /************************************ */
+
+async function getLeagueData(league) {
+    let response = null
+    if(league === "chall"){
+        response = await axios.get(`https://${serverMatching[currentAccounts[0]].server}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5?api_key=${riotApiKey}`);
+    } else if (league === "gm"){
+        response = await axios.get(`https://${serverMatching[currentAccounts[0]].server}.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5?api_key=${riotApiKey}`);
+    }
+    if (!response) return null;
+    const lastChallenger = response.data.entries[response.data.entries.length - 1];
+    const lpToBeat = lastChallenger.leaguePoints;
+    return lpToBeat;
+}
+
+async function getLeagueTopData(top) {
+    const response = await axios.get(`https://${serverMatching[currentAccounts[0]].server}.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5?api_key=${riotApiKey}`);
+    if (!response) return null;
+    const entries = response.data.entries;
+    if (top > entries.length) top = entries.length;
+    if (top < 1) top = 1;
+    const topEntry = entries[top - 1];
+    return [topEntry.leaguePoints, top];
+}
+
 function parseCommand(message) {
     const args = message.slice(1).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
@@ -456,15 +535,17 @@ async function handleTry(channel, userstate, message) {
 }
 
 async function handleStreak(channel) {
-    const streak = await getMatchHistory(bibouSummonerName);
-    client.say(channel, `Streak de Bibou : ${streak}`);
+    currentAccounts.forEach(async account => {
+        const streak = await getMatchHistory(account);
+        client.say(channel, `Streak de ${account} : ${streak}`);
+    });
 }
 
 async function getMatchHistory(username) {
     const histo = [];
     try {
         // Récupération des 20 dernières parties
-        const matchList = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuidMatching[username]}/ids?start=0&count=20&api_key=${riotApiKey}`);
+        const matchList = await axios.get(`https://${serverMatching[username].name}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuidMatching[username]}/ids?start=0&count=20&api_key=${riotApiKey}`);
         const matches = matchList.data;
 
         // Traitement de chaque partie
@@ -474,7 +555,7 @@ async function getMatchHistory(username) {
             const matchId = matches[i];
 
             // Récupération des détails de la partie
-            const match = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
+            const match = await axios.get(`https://${serverMatching[username].name}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
             const matchDetails = match.data;
             if (matchDetails.info.gameMode === "CLASSIC") {
                 // Récupération du résultat de la partie (victoire ou défaite)
@@ -494,12 +575,12 @@ async function getMatchHistory(username) {
 }
 
 async function handleElo(channel) {
-    const summonerNames = [bibouSummonerName] //'Yoriichı'];
+    const summonerNames = currentAccounts;
 
     const getSummonerInfo = async (summonerName) => {
         try {
             // Récupère les informations de la ligue
-            const leagueResponse = await axios.get(`https://euw1.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuidMatching[summonerName]}?api_key=${riotApiKey}`);
+            const leagueResponse = await axios.get(`https://${serverMatching[summonerName].server}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuidMatching[summonerName]}?api_key=${riotApiKey}`);
             const leagueData = leagueResponse.data.find(entry => entry.queueType === 'RANKED_SOLO_5x5');
 
             if (!leagueData) {
@@ -508,8 +589,9 @@ async function handleElo(channel) {
                 const tier = leagueData.tier;
                 const rank = leagueData.rank;
                 const lp = leagueData.leaguePoints;
+                const winrate = ((leagueData.wins / (leagueData.wins + leagueData.losses)) * 100).toFixed(2);
 
-                client.say(channel, ` biboulolGG ${summonerName} est ${tier} ${rank} ${lp} LP.`);
+                client.say(channel, ` biboulolGG ${summonerName} est ${tier} ${rank} ${lp} LP, ${winrate}% winrate`);
             }
         } catch (error) {
             console.error('Erreur lors de la récupération des données de la ligue :', error);
@@ -734,7 +816,7 @@ async function getStats(champName, opponentChamp = "") {
     // Récupération de l'ID du compte à partir du nom d'utilisateur et du serveur
     try {
 
-        const matchList = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(bibouPuuid)}/ids?start=0&count=50&api_key=${riotApiKey}`);
+        const matchList = await axios.get(`https://${serverMatching[currentAccounts[0]].name}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(currentAccounts[0])}/ids?start=0&count=50&api_key=${riotApiKey}`);
         const matches = matchList.data;
 
         // Traitement de chaque partie
@@ -743,10 +825,10 @@ async function getStats(champName, opponentChamp = "") {
         for (let i = 0; i < matches.length; i++) {
             const matchId = matches[i];
             // Retrieving match details
-            const match = await axios.get(`https://europe.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
+            const match = await axios.get(`https://${serverMatching[currentAccounts[0]].name}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
             const matchDetails = match.data;
             if (matchDetails.info.gameMode === "CLASSIC") {
-                const bibou = matchDetails.info.participants.find(participant => participant.puuid === bibouPuuid);
+                const bibou = matchDetails.info.participants.find(participant => participant.puuid === puuidMatching[currentAccounts[0]]);
                 if (!champName && !opponentChamp) {
                     totalGames++;
                     bibouWins += bibou.win ? 1 : 0;
