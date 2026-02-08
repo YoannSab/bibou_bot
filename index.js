@@ -112,6 +112,73 @@ app.get('/bibou', (req, res) => {
     res.sendFile(__dirname + '/bibou.html');
 });
 
+app.get('/api/stats', async (req, res) => {
+    try {
+        const stats = [];
+        
+        for (const summonerName of currentAccounts) {
+            try {
+                // Récupère les infos de la ligue (LP, tier, rank)
+                const leagueResponse = await axios.get(`https://${serverMatching[summonerName].server}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuidMatching[summonerName]}?api_key=${riotApiKey}`);
+                const leagueData = leagueResponse.data.find(entry => entry.queueType === 'RANKED_SOLO_5x5');
+                
+                // Récupère l'historique des parties d'aujourd'hui
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const startTimeSeconds = Math.floor(todayStart.getTime() / 1000);
+                
+                const matchList = await axios.get(`https://${serverMatching[summonerName].name}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuidMatching[summonerName]}/ids?startTime=${startTimeSeconds}&count=20&api_key=${riotApiKey}`);
+                const matches = matchList.data;
+                
+                let todayWins = 0;
+                let todayLosses = 0;
+                
+                for (const matchId of matches) {
+                    const match = await axios.get(`https://${serverMatching[summonerName].name}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${riotApiKey}`);
+                    const matchDetails = match.data;
+                    
+                    if (matchDetails.info.gameMode === "CLASSIC") {
+                        const participant = matchDetails.info.participants.find(p => p.puuid === puuidMatching[summonerName]);
+                        if (participant) {
+                            if (participant.win) {
+                                todayWins++;
+                            } else {
+                                todayLosses++;
+                            }
+                        }
+                    }
+                }
+                
+                stats.push({
+                    summonerName,
+                    tier: leagueData?.tier || 'UNRANKED',
+                    rank: leagueData?.rank || '',
+                    lp: leagueData?.leaguePoints || 0,
+                    todayWins,
+                    todayLosses,
+                    totalGames: todayWins + todayLosses
+                });
+            } catch (error) {
+                console.error(`Erreur pour ${summonerName}:`, error.message);
+                stats.push({
+                    summonerName,
+                    tier: 'ERROR',
+                    rank: '',
+                    lp: 0,
+                    todayWins: 0,
+                    todayLosses: 0,
+                    totalGames: 0
+                });
+            }
+        }
+        
+        res.json(stats);
+    } catch (error) {
+        console.error('Erreur lors de la récupération des stats:', error);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+});
+
 app.get('/login-spotify', (req, res) => {
     try {
         const scopes = [

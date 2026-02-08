@@ -3,57 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bibou Bot</title>
+    <title>Stats</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Arial', sans-serif;
-        }
-
-        .container {
-            text-align: center;
+            font-family: Arial, sans-serif;
+            background: transparent;
             color: white;
+            padding: 40px;
+            margin: 0;
         }
 
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 2rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .spinner {
-            width: 80px;
-            height: 80px;
-            border: 8px solid rgba(255, 255, 255, 0.3);
-            border-top: 8px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .message {
-            margin-top: 2rem;
-            font-size: 1.2rem;
-            opacity: 0.9;
+        .stats {
+            font-size: 24px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 Bibou Bot 🎮</h1>
-        <div class="spinner"></div>
-        <p class="message">Chargement en cours...</p>
+    <div class="stats" id="content">
+        Chargement...
     </div>
+
+    <script>
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                let totalWins = 0;
+                let totalLosses = 0;
+                
+                stats.forEach(player => {
+                    totalWins += player.todayWins;
+                    totalLosses += player.todayLosses;
+                });
+                
+                document.getElementById('content').innerHTML = `Aujourd'hui: ${totalWins}W - ${totalLosses}L`;
+            } catch (error) {
+                document.getElementById('content').innerHTML = 'Erreur de chargement';
+            }
+        }
+
+        fetchStats();
+        setInterval(fetchStats, 5 * 60 * 1000);
+    </script>
 </body>
 </html>
